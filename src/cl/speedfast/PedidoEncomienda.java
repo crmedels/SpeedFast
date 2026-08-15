@@ -13,6 +13,7 @@ public class PedidoEncomienda extends Pedido {
         System.out.println("Validando peso y embalaje... OK");
     }
 
+    @Override
     public void asignarRepartidor(String nombreRepartidor) {
         System.out.println("[Pedido Encomienda]");
         System.out.println("Asignando repartidor...");

@@ -30,12 +30,15 @@ public class Main {
         System.out.println("=== ASIGNACIÓN CON NOMBRE DE REPARTIDOR ===");
         System.out.println();
 
-        pedidoComida.asignarRepartidor("Juan Pérez");
-        System.out.println();
+        String[] nombresRepartidores = {
+                "Juan Pérez",
+                "Camila Soto",
+                "Luis Díaz"
+        };
 
-        pedidoEncomienda.asignarRepartidor("Camila Soto");
-        System.out.println();
-
-        pedidoExpress.asignarRepartidor("Luis Díaz");
+        for (int i = 0; i < pedidos.length; i++) {
+            pedidos[i].asignarRepartidor(nombresRepartidores[i]);
+            System.out.println();
+        }
     }
 }

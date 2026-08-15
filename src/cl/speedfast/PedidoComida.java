@@ -13,6 +13,7 @@ public class PedidoComida extends Pedido {
         System.out.println("Verificando mochila térmica... OK");
     }
 
+    @Override
     public void asignarRepartidor(String nombreRepartidor) {
         System.out.println("[Pedido Comida]");
         System.out.println("Asignando repartidor...");

@@ -39,4 +39,8 @@ public class Pedido {
     public void asignarRepartidor() {
         System.out.println("Asignando repartidor para el pedido...");
     }
+
+    public void asignarRepartidor(String nombreRepartidor) {
+        System.out.println("Pedido asignado a " + nombreRepartidor + ".");
+    }
 }

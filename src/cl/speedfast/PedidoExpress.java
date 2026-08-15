@@ -13,6 +13,7 @@ public class PedidoExpress extends Pedido {
         System.out.println("Repartidor más cercano con disponibilidad inmediata encontrado.");
     }
 
+    @Override
     public void asignarRepartidor(String nombreRepartidor) {
         System.out.println("[Pedido Express]");
         System.out.println("Asignando repartidor...");
