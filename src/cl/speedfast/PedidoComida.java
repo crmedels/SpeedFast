@@ -2,8 +2,16 @@ package cl.speedfast;
 
 public class PedidoComida extends Pedido {
 
-    public PedidoComida(int idPedido, String direccionEntrega, String tipoPedido) {
-        super(idPedido, direccionEntrega, tipoPedido);
+    private final int tiempoBase = 15;
+    private final int minutosPorKm = 2;
+
+    public PedidoComida(int idPedido, String direccionEntrega, int distanciaKm) {
+        super(idPedido, direccionEntrega, distanciaKm);
+    }
+
+    @Override
+    public int calcularTiempoEntrega() {
+        return tiempoBase + (minutosPorKm * getDistanciaKm());
     }
 
     @Override
