@@ -37,6 +37,7 @@ public abstract class Pedido {
     }
 
     public void mostrarResumen() {
+        System.out.println("Tipo de entrega: " + getClass().getSimpleName());
         System.out.println("ID del pedido: " + idPedido);
         System.out.println("Dirección de entrega: " + direccionEntrega);
         System.out.println("Distancia: " + distanciaKm + " km");
