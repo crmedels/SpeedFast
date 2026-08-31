@@ -21,16 +21,23 @@ public class PedidoExpress extends Pedido {
 
     @Override
     public void asignarRepartidor() {
+        String nombreRepartidor = "Repartidor Express";
+
+        registrarRepartidor(nombreRepartidor);
+
         System.out.println("[Pedido Express]");
-        System.out.println("Asignando repartidor...");
-        System.out.println("Repartidor más cercano con disponibilidad inmediata encontrado.");
+        System.out.println("Buscando repartidor más cercano...");
+        System.out.println("Repartidor asignado automáticamente: "
+                + nombreRepartidor + ".");
     }
 
     @Override
     public void asignarRepartidor(String nombreRepartidor) {
+        registrarRepartidor(nombreRepartidor);
+
         System.out.println("[Pedido Express]");
-        System.out.println("Asignando repartidor...");
-        System.out.println("Repartidor más cercano con disponibilidad inmediata encontrado.");
-        System.out.println("Pedido asignado a " + nombreRepartidor + ".");
+        System.out.println("Asignación express manual.");
+        System.out.println("Pedido asignado manualmente a "
+                + nombreRepartidor + ".");
     }
 }
