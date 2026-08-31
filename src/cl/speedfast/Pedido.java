@@ -11,6 +11,7 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
     private int idPedido;
     private String direccionEntrega;
     private int distanciaKm;
+    private String nombreRepartidor;
 
     private boolean reservado;
     private boolean despachado;
@@ -22,6 +23,7 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
         this.idPedido = idPedido;
         this.direccionEntrega = direccionEntrega;
         this.distanciaKm = distanciaKm;
+        this.nombreRepartidor = null;
 
         this.reservado = false;
         this.despachado = false;
@@ -55,20 +57,37 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
         this.distanciaKm = distanciaKm;
     }
 
+    public String getNombreRepartidor() {
+        return nombreRepartidor;
+    }
+
     public void mostrarResumen() {
         System.out.println("Tipo de entrega: " + getClass().getSimpleName());
         System.out.println("ID del pedido: " + idPedido);
         System.out.println("Dirección de entrega: " + direccionEntrega);
         System.out.println("Distancia: " + distanciaKm + " km");
+
+        if (nombreRepartidor == null) {
+            System.out.println("Repartidor asignado: Sin asignar");
+        } else {
+            System.out.println("Repartidor asignado: " + nombreRepartidor);
+        }
     }
 
     public abstract int calcularTiempoEntrega();
 
+    protected void registrarRepartidor(String nombreRepartidor) {
+        this.nombreRepartidor = nombreRepartidor;
+        historial.add("Repartidor asignado: " + nombreRepartidor + ".");
+    }
+
     public void asignarRepartidor() {
-        System.out.println("Asignando repartidor para el pedido...");
+        registrarRepartidor("Repartidor automático");
+        System.out.println("Repartidor asignado automáticamente.");
     }
 
     public void asignarRepartidor(String nombreRepartidor) {
+        registrarRepartidor(nombreRepartidor);
         System.out.println("Pedido asignado a " + nombreRepartidor + ".");
     }
 
