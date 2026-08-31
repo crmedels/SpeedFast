@@ -16,16 +16,23 @@ public class PedidoComida extends Pedido {
 
     @Override
     public void asignarRepartidor() {
+        String nombreRepartidor = "Luis Díaz";
+
+        registrarRepartidor(nombreRepartidor);
+
         System.out.println("[Pedido Comida]");
-        System.out.println("Asignando repartidor...");
         System.out.println("Verificando mochila térmica... OK");
+        System.out.println("Repartidor asignado automáticamente: "
+                + nombreRepartidor + ".");
     }
 
     @Override
     public void asignarRepartidor(String nombreRepartidor) {
+        registrarRepartidor(nombreRepartidor);
+
         System.out.println("[Pedido Comida]");
-        System.out.println("Asignando repartidor...");
         System.out.println("Verificando mochila térmica... OK");
-        System.out.println("Pedido asignado a " + nombreRepartidor + ".");
+        System.out.println("Pedido asignado manualmente a "
+                + nombreRepartidor + ".");
     }
 }
