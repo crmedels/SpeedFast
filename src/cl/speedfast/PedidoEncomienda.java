@@ -11,21 +11,30 @@ public class PedidoEncomienda extends Pedido {
 
     @Override
     public int calcularTiempoEntrega() {
-        return (int) Math.round(tiempoBase + (minutosPorKm * getDistanciaKm()));
+        return (int) Math.round(
+                tiempoBase + (minutosPorKm * getDistanciaKm())
+        );
     }
 
     @Override
     public void asignarRepartidor() {
+        String nombreRepartidor = "Daniela Tapia";
+
+        registrarRepartidor(nombreRepartidor);
+
         System.out.println("[Pedido Encomienda]");
-        System.out.println("Asignando repartidor...");
         System.out.println("Validando peso y embalaje... OK");
+        System.out.println("Repartidor asignado automáticamente: "
+                + nombreRepartidor + ".");
     }
 
     @Override
     public void asignarRepartidor(String nombreRepartidor) {
+        registrarRepartidor(nombreRepartidor);
+
         System.out.println("[Pedido Encomienda]");
-        System.out.println("Asignando repartidor...");
         System.out.println("Validando peso y embalaje... OK");
-        System.out.println("Pedido asignado a " + nombreRepartidor + ".");
+        System.out.println("Pedido asignado manualmente a "
+                + nombreRepartidor + ".");
     }
 }
