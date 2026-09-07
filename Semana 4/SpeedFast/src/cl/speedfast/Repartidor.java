@@ -21,9 +21,9 @@ public class Repartidor implements Runnable {
             );
         }
 
-        if (pedidosAsignados == null) {
+        if (pedidosAsignados == null || pedidosAsignados.isEmpty()) {
             throw new IllegalArgumentException(
-                    "La lista de pedidos no puede ser nula."
+                    "La lista de pedidos no puede estar vacía."
             );
         }
 
@@ -37,6 +37,11 @@ public class Repartidor implements Runnable {
 
         this.nombre = nombre.trim();
         this.pedidosAsignados = new ArrayList<>(pedidosAsignados);
+
+        // Asigna este repartidor a todos sus pedidos.
+        for (Pedido pedido : this.pedidosAsignados) {
+            pedido.asignarRepartidor(this.nombre);
+        }
     }
 
     @Override

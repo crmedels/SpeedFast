@@ -2,28 +2,27 @@ package cl.speedfast;
 
 import cl.speedfast.gestores.ControladorDeEnvios;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 public class Main {
 
     public static void main(String[] args) {
 
         ControladorDeEnvios controlador = new ControladorDeEnvios();
 
-        PedidoComida pedidoComida =
-                new PedidoComida(101, "Avenida Central 123", 4);
-
-        PedidoEncomienda pedidoEncomienda =
-                new PedidoEncomienda(102, "Los Robles 456", 6);
-
-        PedidoExpress pedidoExpress =
-                new PedidoExpress(103, "Las Flores 789", 7);
-
         Pedido[] pedidos = {
-                pedidoComida,
-                pedidoEncomienda,
-                pedidoExpress
+                new PedidoComida(101, "Avenida Central 123", 4),
+                new PedidoEncomienda(102, "Los Robles 456", 6),
+                new PedidoExpress(103, "Las Flores 789", 7),
+                new PedidoComida(104, "Los Aromos 321", 3),
+                new PedidoEncomienda(105, "Avenida Norte 654", 8),
+                new PedidoExpress(106, "Los Castaños 987", 5)
         };
 
-        // Registro de los pedidos en el controlador.
+        // Registro de todos los pedidos mediante referencias de tipo Pedido.
         for (Pedido pedido : pedidos) {
             controlador.registrarPedido(pedido);
         }
@@ -33,66 +32,83 @@ public class Main {
         System.out.println("==============================================");
         System.out.println();
 
-        // Demostración polimórfica de resumen y cálculo de tiempo.
-        System.out.println("=== RESUMEN Y TIEMPOS DE ENTREGA ===");
+        System.out.println("=== ASIGNACIÓN DE PEDIDOS ===");
+        System.out.println();
+
+        Repartidor repartidor1 = new Repartidor(
+                "Camila",
+                List.of(pedidos[0], pedidos[1])
+        );
+
+        System.out.println();
+
+        Repartidor repartidor2 = new Repartidor(
+                "Luis",
+                List.of(pedidos[2], pedidos[3])
+        );
+
+        System.out.println();
+
+        Repartidor repartidor3 = new Repartidor(
+                "Daniela",
+                List.of(pedidos[4], pedidos[5])
+        );
+
+        System.out.println();
+        System.out.println("=== RESUMEN DE PEDIDOS ASIGNADOS ===");
         System.out.println();
 
         for (Pedido pedido : pedidos) {
             pedido.mostrarResumen();
-            System.out.println("Tiempo estimado de entrega: "
-                    + pedido.calcularTiempoEntrega() + " minutos");
+
+            System.out.println(
+                    "Tiempo estimado de entrega: "
+                            + pedido.calcularTiempoEntrega()
+                            + " minutos"
+            );
+
             System.out.println();
         }
 
-        // CASO 1: Pedido de comida.
-        System.out.println("=== CASO 1: PEDIDO DE COMIDA ===");
-        pedidoComida.asignarRepartidor();
-        System.out.println("Tiempo estimado: "
-                + pedidoComida.calcularTiempoEntrega() + " minutos");
-
-        controlador.reservarPedido(pedidoComida);
-        controlador.despacharPedido(pedidoComida);
-
-        System.out.println();
-        controlador.mostrarHistorial(pedidoComida);
-
-        System.out.println();
-        System.out.println("----------------------------------------------");
+        System.out.println("=== INICIO DE ENTREGAS CONCURRENTES ===");
         System.out.println();
 
-        // CASO 2: Pedido de encomienda.
-        System.out.println("=== CASO 2: PEDIDO DE ENCOMIENDA ===");
-        pedidoEncomienda.asignarRepartidor("Daniela Tapia");
-        System.out.println("Tiempo estimado: "
-                + pedidoEncomienda.calcularTiempoEntrega() + " minutos");
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
-        controlador.reservarPedido(pedidoEncomienda);
-        controlador.despacharPedido(pedidoEncomienda);
+        executor.execute(repartidor1);
+        executor.execute(repartidor2);
+        executor.execute(repartidor3);
 
-        System.out.println("Intentando cancelar el pedido después del despacho:");
-        controlador.cancelarPedido(pedidoEncomienda);
+        // No se aceptan nuevas tareas, pero las actuales pueden finalizar.
+        executor.shutdown();
 
-        System.out.println();
-        controlador.mostrarHistorial(pedidoEncomienda);
+        try {
 
-        System.out.println();
-        System.out.println("----------------------------------------------");
-        System.out.println();
+            if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
 
-        // CASO 3: Pedido express.
-        System.out.println("=== CASO 3: PEDIDO EXPRESS ===");
-        pedidoExpress.asignarRepartidor();
-        System.out.println("Tiempo estimado: "
-                + pedidoExpress.calcularTiempoEntrega() + " minutos");
+                System.out.println(
+                        "La simulación excedió el tiempo máximo de espera."
+                );
 
-        controlador.reservarPedido(pedidoExpress);
-        controlador.cancelarPedido(pedidoExpress);
+                executor.shutdownNow();
+            }
 
-        System.out.println();
-        controlador.mostrarHistorial(pedidoExpress);
+        } catch (InterruptedException e) {
+
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+
+            System.out.println(
+                    "La ejecución principal fue interrumpida."
+            );
+        }
 
         System.out.println();
         System.out.println("==============================================");
+        System.out.println("       SIMULACIÓN SPEEDFAST FINALIZADA");
+        System.out.println("==============================================");
+        System.out.println();
+
         controlador.mostrarTodosLosHistoriales();
     }
 }
