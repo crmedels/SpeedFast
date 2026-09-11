@@ -32,7 +32,9 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
         this.cancelado = false;
 
         this.historial = new ArrayList<>();
+
         historial.add("Pedido creado.");
+        historial.add("Estado inicial: " + estado + ".");
     }
 
     public int getIdPedido() {
@@ -68,24 +70,76 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
     }
 
     public void setEstado(EstadoPedido nuevoEstado) {
+
+        if (nuevoEstado == null) {
+            throw new IllegalArgumentException(
+                    "El estado del pedido no puede ser nulo."
+            );
+        }
+
+        EstadoPedido estadoAnterior = this.estado;
         this.estado = nuevoEstado;
+
+        historial.add(
+                "Estado actualizado: "
+                        + estadoAnterior
+                        + " -> "
+                        + nuevoEstado
+                        + "."
+        );
     }
 
     public void setEstado(String nuevoEstado) {
-        this.estado = EstadoPedido.valueOf(nuevoEstado.toUpperCase());
+
+        if (nuevoEstado == null || nuevoEstado.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El estado del pedido no puede estar vacío."
+            );
+        }
+
+        setEstado(
+                EstadoPedido.valueOf(
+                        nuevoEstado.trim().toUpperCase()
+                )
+        );
     }
 
     public void mostrarResumen() {
-        System.out.println("Tipo de entrega: " + getClass().getSimpleName());
-        System.out.println("ID del pedido: " + idPedido);
-        System.out.println("Dirección de entrega: " + direccionEntrega);
-        System.out.println("Distancia: " + distanciaKm + " km");
-        System.out.println("Estado: " + estado);
+        System.out.println(
+                "Tipo de entrega: "
+                        + getClass().getSimpleName()
+        );
+
+        System.out.println(
+                "ID del pedido: "
+                        + idPedido
+        );
+
+        System.out.println(
+                "Dirección de entrega: "
+                        + direccionEntrega
+        );
+
+        System.out.println(
+                "Distancia: "
+                        + distanciaKm
+                        + " km"
+        );
+
+        System.out.println(
+                "Estado: "
+                        + estado
+        );
 
         if (nombreRepartidor == null) {
-            System.out.println("Repartidor asignado: Sin asignar");
+            System.out.println(
+                    "Repartidor asignado: Sin asignar"
+            );
         } else {
-            System.out.println("Repartidor asignado: " + nombreRepartidor);
+            System.out.println(
+                    "Repartidor asignado: "
+                            + nombreRepartidor
+            );
         }
     }
 
@@ -93,87 +147,154 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
 
     protected void registrarRepartidor(String nombreRepartidor) {
         this.nombreRepartidor = nombreRepartidor;
-        historial.add("Repartidor asignado: " + nombreRepartidor + ".");
+
+        historial.add(
+                "Repartidor asignado: "
+                        + nombreRepartidor
+                        + "."
+        );
     }
 
     public void asignarRepartidor() {
-        registrarRepartidor("Repartidor automático");
-        System.out.println("Repartidor asignado automáticamente.");
+        registrarRepartidor(
+                "Repartidor automático"
+        );
+
+        System.out.println(
+                "Repartidor asignado automáticamente."
+        );
     }
 
     public void asignarRepartidor(String nombreRepartidor) {
         registrarRepartidor(nombreRepartidor);
-        System.out.println("Pedido asignado a " + nombreRepartidor + ".");
+
+        System.out.println(
+                "Pedido asignado a "
+                        + nombreRepartidor
+                        + "."
+        );
     }
 
     public void reservar() {
+
         if (cancelado) {
-            System.out.println("No se puede reservar el pedido porque está cancelado.");
+            System.out.println(
+                    "No se puede reservar el pedido porque está cancelado."
+            );
             return;
         }
 
         if (reservado) {
-            System.out.println("El pedido ya se encuentra reservado.");
+            System.out.println(
+                    "El pedido ya se encuentra reservado."
+            );
             return;
         }
 
         reservado = true;
-        historial.add("Pedido reservado.");
-        System.out.println("Pedido #" + idPedido + " reservado correctamente.");
+
+        historial.add(
+                "Pedido reservado."
+        );
+
+        System.out.println(
+                "Pedido #"
+                        + idPedido
+                        + " reservado correctamente."
+        );
     }
 
     @Override
     public void despachar() {
+
         if (cancelado) {
-            System.out.println("No se puede despachar el pedido porque está cancelado.");
+            System.out.println(
+                    "No se puede despachar el pedido porque está cancelado."
+            );
             return;
         }
 
         if (!reservado) {
-            System.out.println("No se puede despachar el pedido porque no está reservado.");
+            System.out.println(
+                    "No se puede despachar el pedido porque no está reservado."
+            );
             return;
         }
 
         if (despachado) {
-            System.out.println("El pedido ya fue despachado.");
+            System.out.println(
+                    "El pedido ya fue despachado."
+            );
             return;
         }
 
         despachado = true;
-        historial.add("Pedido despachado.");
-        System.out.println("Pedido #" + idPedido + " despachado correctamente.");
+
+        historial.add(
+                "Pedido despachado."
+        );
+
+        System.out.println(
+                "Pedido #"
+                        + idPedido
+                        + " despachado correctamente."
+        );
     }
 
     @Override
     public void cancelar() {
+
         if (despachado) {
-            System.out.println("No se puede cancelar el pedido porque ya fue despachado.");
+            System.out.println(
+                    "No se puede cancelar el pedido porque ya fue despachado."
+            );
             return;
         }
 
         if (cancelado) {
-            System.out.println("El pedido ya se encuentra cancelado.");
+            System.out.println(
+                    "El pedido ya se encuentra cancelado."
+            );
             return;
         }
 
         cancelado = true;
-        historial.add("Pedido cancelado.");
-        System.out.println("Pedido #" + idPedido + " cancelado correctamente.");
+
+        historial.add(
+                "Pedido cancelado."
+        );
+
+        System.out.println(
+                "Pedido #"
+                        + idPedido
+                        + " cancelado correctamente."
+        );
     }
 
     @Override
     public void verHistorial() {
-        System.out.println("Historial del pedido #" + idPedido + ":");
+
+        System.out.println(
+                "Historial del pedido #"
+                        + idPedido
+                        + ":"
+        );
 
         for (String registro : historial) {
-            System.out.println("- " + registro);
+            System.out.println(
+                    "- "
+                            + registro
+            );
         }
     }
 
     @Override
     public String toString() {
-        return "Pedido #" + idPedido
-                + " | Dirección: " + direccionEntrega
-                + " | Estado: " + estado;
+        return "Pedido #"
+                + idPedido
+                + " | Dirección: "
+                + direccionEntrega
+                + " | Estado: "
+                + estado;
     }
 }
