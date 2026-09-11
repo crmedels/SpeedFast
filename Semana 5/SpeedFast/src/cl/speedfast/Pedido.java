@@ -71,11 +71,16 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
         this.estado = nuevoEstado;
     }
 
+    public void setEstado(String nuevoEstado) {
+        this.estado = EstadoPedido.valueOf(nuevoEstado.toUpperCase());
+    }
+
     public void mostrarResumen() {
         System.out.println("Tipo de entrega: " + getClass().getSimpleName());
         System.out.println("ID del pedido: " + idPedido);
         System.out.println("Dirección de entrega: " + direccionEntrega);
         System.out.println("Distancia: " + distanciaKm + " km");
+        System.out.println("Estado: " + estado);
 
         if (nombreRepartidor == null) {
             System.out.println("Repartidor asignado: Sin asignar");
@@ -163,5 +168,12 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
         for (String registro : historial) {
             System.out.println("- " + registro);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Pedido #" + idPedido
+                + " | Dirección: " + direccionEntrega
+                + " | Estado: " + estado;
     }
 }
