@@ -1,19 +1,17 @@
 package cl.speedfast;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Representa a un repartidor que procesa una lista de pedidos
- * de forma independiente mediante un hilo de ejecución.
+ * Representa a un repartidor que retira pedidos desde una zona
+ * de carga compartida y realiza las entregas de forma concurrente.
  */
 public class Repartidor implements Runnable {
 
     private final String nombre;
-    private final List<Pedido> pedidosAsignados;
+    private final ZonaDeCarga zonaDeCarga;
 
-    public Repartidor(String nombre, List<Pedido> pedidosAsignados) {
+    public Repartidor(String nombre, ZonaDeCarga zonaDeCarga) {
 
         if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException(
@@ -21,43 +19,49 @@ public class Repartidor implements Runnable {
             );
         }
 
-        if (pedidosAsignados == null || pedidosAsignados.isEmpty()) {
+        if (zonaDeCarga == null) {
             throw new IllegalArgumentException(
-                    "La lista de pedidos no puede estar vacía."
+                    "La zona de carga no puede ser nula."
             );
         }
 
-        for (Pedido pedido : pedidosAsignados) {
-            if (pedido == null) {
-                throw new IllegalArgumentException(
-                        "La lista no puede contener pedidos nulos."
-                );
-            }
-        }
-
         this.nombre = nombre.trim();
-        this.pedidosAsignados = new ArrayList<>(pedidosAsignados);
-
-        // Asigna este repartidor a todos sus pedidos.
-        for (Pedido pedido : this.pedidosAsignados) {
-            pedido.asignarRepartidor(this.nombre);
-        }
+        this.zonaDeCarga = zonaDeCarga;
     }
 
     @Override
     public void run() {
 
-        for (Pedido pedido : pedidosAsignados) {
+        while (true) {
+
+            Pedido pedido = zonaDeCarga.retirarPedido();
+
+            if (pedido == null) {
+                break;
+            }
+
+            pedido.asignarRepartidor(nombre);
+            pedido.setEstado(EstadoPedido.EN_REPARTO);
 
             System.out.println(
-                    "[Repartidor: " + nombre + "] Entregando "
-                            + pedido.getClass().getSimpleName()
-                            + " #" + pedido.getIdPedido() + "..."
+                    "[Repartidor - " + nombre + "] Retirando pedido #"
+                            + pedido.getIdPedido() + "..."
+            );
+
+            System.out.println(
+                    "[Repartidor - " + nombre + "] Estado: "
+                            + pedido.getEstado()
             );
 
             try {
+
                 int tiempoEspera =
                         ThreadLocalRandom.current().nextInt(1000, 3001);
+
+                System.out.println(
+                        "[Repartidor - " + nombre + "] Entregando pedido #"
+                                + pedido.getIdPedido() + "..."
+                );
 
                 Thread.sleep(tiempoEspera);
 
@@ -66,22 +70,29 @@ public class Repartidor implements Runnable {
                 Thread.currentThread().interrupt();
 
                 System.out.println(
-                        "[Repartidor: " + nombre
+                        "[Repartidor - " + nombre
                                 + "] Entrega interrumpida."
                 );
 
                 return;
             }
 
+            pedido.setEstado(EstadoPedido.ENTREGADO);
+
             System.out.println(
-                    "[Repartidor: " + nombre + "] Pedido #"
+                    "[Repartidor - " + nombre + "] Pedido #"
                             + pedido.getIdPedido() + " entregado."
+            );
+
+            System.out.println(
+                    "[Repartidor - " + nombre + "] Estado: "
+                            + pedido.getEstado()
             );
         }
 
         System.out.println(
-                "[Repartidor: " + nombre
-                        + "] Todas las entregas finalizadas."
+                "[Repartidor - " + nombre
+                        + "] No quedan pedidos pendientes."
         );
     }
 }

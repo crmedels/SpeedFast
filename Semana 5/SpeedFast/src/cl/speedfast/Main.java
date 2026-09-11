@@ -2,7 +2,6 @@ package cl.speedfast;
 
 import cl.speedfast.gestores.ControladorDeEnvios;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +21,7 @@ public class Main {
                 new PedidoExpress(106, "Los Castaños 987", 5)
         };
 
-        // Registro de todos los pedidos mediante referencias de tipo Pedido.
+        // Registro de todos los pedidos para mantener su historial.
         for (Pedido pedido : pedidos) {
             controlador.registrarPedido(pedido);
         }
@@ -32,33 +31,29 @@ public class Main {
         System.out.println("==============================================");
         System.out.println();
 
-        System.out.println("=== ASIGNACIÓN DE PEDIDOS ===");
-        System.out.println();
-
-        Repartidor repartidor1 = new Repartidor(
-                "Camila",
-                List.of(pedidos[0], pedidos[1])
-        );
+        // Recurso compartido por todos los repartidores.
+        ZonaDeCarga zonaDeCarga = new ZonaDeCarga();
 
         System.out.println();
-
-        Repartidor repartidor2 = new Repartidor(
-                "Luis",
-                List.of(pedidos[2], pedidos[3])
-        );
-
-        System.out.println();
-
-        Repartidor repartidor3 = new Repartidor(
-                "Daniela",
-                List.of(pedidos[4], pedidos[5])
-        );
-
-        System.out.println();
-        System.out.println("=== RESUMEN DE PEDIDOS ASIGNADOS ===");
+        System.out.println("=== CARGA DE PEDIDOS ===");
         System.out.println();
 
         for (Pedido pedido : pedidos) {
+            zonaDeCarga.agregarPedido(pedido);
+        }
+
+        System.out.println();
+        System.out.println(
+                "Pedidos pendientes en zona de carga: "
+                        + zonaDeCarga.getCantidadPedidosPendientes()
+        );
+
+        System.out.println();
+        System.out.println("=== RESUMEN INICIAL DE PEDIDOS ===");
+        System.out.println();
+
+        for (Pedido pedido : pedidos) {
+
             pedido.mostrarResumen();
 
             System.out.println(
@@ -73,13 +68,23 @@ public class Main {
         System.out.println("=== INICIO DE ENTREGAS CONCURRENTES ===");
         System.out.println();
 
+        // Los tres repartidores comparten la misma zona de carga.
+        Repartidor repartidor1 =
+                new Repartidor("Camila", zonaDeCarga);
+
+        Repartidor repartidor2 =
+                new Repartidor("Luis", zonaDeCarga);
+
+        Repartidor repartidor3 =
+                new Repartidor("Daniela", zonaDeCarga);
+
         ExecutorService executor = Executors.newFixedThreadPool(3);
 
         executor.execute(repartidor1);
         executor.execute(repartidor2);
         executor.execute(repartidor3);
 
-        // No se aceptan nuevas tareas, pero las actuales pueden finalizar.
+        // No se aceptan nuevas tareas.
         executor.shutdown();
 
         try {
@@ -100,6 +105,39 @@ public class Main {
 
             System.out.println(
                     "La ejecución principal fue interrumpida."
+            );
+        }
+
+        System.out.println();
+        System.out.println("=== ESTADO FINAL DE LOS PEDIDOS ===");
+        System.out.println();
+
+        boolean todosEntregados = true;
+
+        for (Pedido pedido : pedidos) {
+
+            System.out.println(
+                    "Pedido #" + pedido.getIdPedido()
+                            + " | Repartidor: "
+                            + pedido.getNombreRepartidor()
+                            + " | Estado: "
+                            + pedido.getEstado()
+            );
+
+            if (pedido.getEstado() != EstadoPedido.ENTREGADO) {
+                todosEntregados = false;
+            }
+        }
+
+        System.out.println();
+
+        if (todosEntregados) {
+            System.out.println(
+                    "Todos los pedidos han sido entregados correctamente"
+            );
+        } else {
+            System.out.println(
+                    "Algunos pedidos no pudieron ser entregados."
             );
         }
 
