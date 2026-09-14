@@ -129,6 +129,12 @@ Es la clase principal encargada de:
 - Verificar el estado final de los pedidos.
 - Mostrar los historiales de ejecución.
 
+## Diagrama de clases
+
+El siguiente diagrama representa la estructura principal del sistema SpeedFast correspondiente a la Semana 5, incluyendo las relaciones de herencia, interfaces y los nuevos componentes utilizados para la ejecución concurrente y sincronizada.
+
+![Diagrama de clases SpeedFast - Semana 5](diagrama_clases.png)
+
 ## Simulación realizada
 
 El sistema utiliza seis pedidos:
