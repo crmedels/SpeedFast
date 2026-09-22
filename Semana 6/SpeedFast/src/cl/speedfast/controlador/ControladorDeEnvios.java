@@ -1,15 +1,15 @@
-package cl.speedfast.gestores;
+package cl.speedfast.controlador;
 
-import cl.speedfast.Pedido;
 import cl.speedfast.interfaces.Cancelable;
 import cl.speedfast.interfaces.Despachable;
 import cl.speedfast.interfaces.Rastreable;
+import cl.speedfast.modelo.Pedido;
 
 import java.util.ArrayList;
 
 public class ControladorDeEnvios {
 
-    private final ArrayList<Rastreable> pedidosRegistrados;
+    private final ArrayList<Pedido> pedidosRegistrados;
 
     public ControladorDeEnvios() {
         pedidosRegistrados = new ArrayList<>();
@@ -39,9 +39,23 @@ public class ControladorDeEnvios {
         System.out.println("=== HISTORIAL DE PEDIDOS ===");
         System.out.println();
 
-        for (Rastreable pedido : pedidosRegistrados) {
+        for (Pedido pedido : pedidosRegistrados) {
             pedido.verHistorial();
             System.out.println();
         }
+    }
+
+    public ArrayList<Pedido> getPedidosRegistrados() {
+        return pedidosRegistrados;
+    }
+
+    public boolean existePedido(int idPedido) {
+        for (Pedido pedido : pedidosRegistrados) {
+            if (pedido.getIdPedido() == idPedido) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -1,4 +1,4 @@
-package cl.speedfast;
+package cl.speedfast.modelo;
 
 import cl.speedfast.interfaces.Cancelable;
 import cl.speedfast.interfaces.Despachable;

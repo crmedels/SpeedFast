@@ -1,4 +1,4 @@
-package cl.speedfast;
+package cl.speedfast.modelo;
 
 public class PedidoComida extends Pedido {
 

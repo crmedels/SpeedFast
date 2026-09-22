@@ -1,4 +1,4 @@
-package cl.speedfast;
+package cl.speedfast.modelo;
 
 import java.util.concurrent.ThreadLocalRandom;
 
