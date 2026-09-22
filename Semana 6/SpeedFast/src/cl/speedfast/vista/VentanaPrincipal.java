@@ -63,6 +63,13 @@ public class VentanaPrincipal extends JFrame {
             ventanaLista.setVisible(true);
         });
 
+        btnGestionarEntrega.addActionListener(e -> {
+            VentanaEntrega ventanaEntrega =
+                    new VentanaEntrega(controlador);
+
+            ventanaEntrega.setVisible(true);
+        });
+
         btnSalir.addActionListener(e -> System.exit(0));
 
         panelPrincipal.add(lblTitulo, BorderLayout.NORTH);
