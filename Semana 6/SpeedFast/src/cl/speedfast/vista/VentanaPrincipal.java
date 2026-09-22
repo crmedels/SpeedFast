@@ -49,6 +49,13 @@ public class VentanaPrincipal extends JFrame {
         panelBotones.add(btnGestionarEntrega);
         panelBotones.add(btnSalir);
 
+        btnRegistrarPedido.addActionListener(e -> {
+            VentanaRegistroPedido ventanaRegistro =
+                    new VentanaRegistroPedido(controlador);
+
+            ventanaRegistro.setVisible(true);
+        });
+
         btnSalir.addActionListener(e -> System.exit(0));
 
         panelPrincipal.add(lblTitulo, BorderLayout.NORTH);
