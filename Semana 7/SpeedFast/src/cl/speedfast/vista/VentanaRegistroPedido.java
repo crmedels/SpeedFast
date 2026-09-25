@@ -5,6 +5,7 @@ import cl.speedfast.modelo.Pedido;
 import cl.speedfast.modelo.PedidoComida;
 import cl.speedfast.modelo.PedidoEncomienda;
 import cl.speedfast.modelo.PedidoExpress;
+import dao.PedidoDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,8 +14,8 @@ import java.awt.*;
 public class VentanaRegistroPedido extends JFrame {
 
     private final ControladorDeEnvios controlador;
+    private final PedidoDAO pedidoDAO;
 
-    private JTextField txtId;
     private JTextField txtDireccion;
     private JTextField txtDistancia;
     private JComboBox<String> cmbTipo;
@@ -22,49 +23,64 @@ public class VentanaRegistroPedido extends JFrame {
     private JButton btnVolver;
 
     public VentanaRegistroPedido(ControladorDeEnvios controlador) {
+
         this.controlador = controlador;
+        this.pedidoDAO = new PedidoDAO();
 
         configurarVentana();
         crearComponentes();
     }
 
     private void configurarVentana() {
+
         setTitle("SpeedFast - Registrar Pedido");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(450, 350);
+        setSize(450, 320);
         setLocationRelativeTo(null);
         setResizable(false);
     }
 
     private void crearComponentes() {
 
-        JPanel panelPrincipal = new JPanel(new BorderLayout(10, 20));
-        panelPrincipal.setBorder(new EmptyBorder(20, 30, 20, 30));
+        JPanel panelPrincipal =
+                new JPanel(new BorderLayout(10, 20));
+
+        panelPrincipal.setBorder(
+                new EmptyBorder(20, 30, 20, 30)
+        );
 
         JLabel lblTitulo =
-                new JLabel("REGISTRO DE PEDIDO", SwingConstants.CENTER);
+                new JLabel(
+                        "REGISTRO DE PEDIDO",
+                        SwingConstants.CENTER
+                );
 
-        lblTitulo.setFont(new Font("Arial", Font.BOLD, 20));
+        lblTitulo.setFont(
+                new Font("Arial", Font.BOLD, 20)
+        );
 
-        JPanel panelFormulario = new JPanel(new GridLayout(4, 2, 10, 15));
+        JPanel panelFormulario =
+                new JPanel(new GridLayout(3, 2, 10, 15));
 
-        JLabel lblId = new JLabel("ID:");
-        JLabel lblDireccion = new JLabel("Dirección:");
-        JLabel lblTipo = new JLabel("Tipo:");
-        JLabel lblDistancia = new JLabel("Distancia (km):");
+        JLabel lblDireccion =
+                new JLabel("Dirección:");
 
-        txtId = new JTextField();
+        JLabel lblTipo =
+                new JLabel("Tipo:");
+
+        JLabel lblDistancia =
+                new JLabel("Distancia (km):");
+
         txtDireccion = new JTextField();
         txtDistancia = new JTextField();
 
-        cmbTipo = new JComboBox<>(new String[]{
-                "Comida",
-                "Encomienda",
-                "Express"
-        });
-
-        panelFormulario.add(lblId);
-        panelFormulario.add(txtId);
+        cmbTipo = new JComboBox<>(
+                new String[]{
+                        "Comida",
+                        "Encomienda",
+                        "Express"
+                }
+        );
 
         panelFormulario.add(lblDireccion);
         panelFormulario.add(txtDireccion);
@@ -75,7 +91,8 @@ public class VentanaRegistroPedido extends JFrame {
         panelFormulario.add(lblDistancia);
         panelFormulario.add(txtDistancia);
 
-        JPanel panelBotones = new JPanel(new GridLayout(1, 2, 10, 0));
+        JPanel panelBotones =
+                new JPanel(new GridLayout(1, 2, 10, 0));
 
         btnGuardar = new JButton("Guardar");
         btnVolver = new JButton("Volver");
@@ -83,25 +100,41 @@ public class VentanaRegistroPedido extends JFrame {
         panelBotones.add(btnGuardar);
         panelBotones.add(btnVolver);
 
-        btnGuardar.addActionListener(e -> guardarPedido());
+        btnGuardar.addActionListener(
+                e -> guardarPedido()
+        );
 
-        btnVolver.addActionListener(e -> dispose());
+        btnVolver.addActionListener(
+                e -> dispose()
+        );
 
-        panelPrincipal.add(lblTitulo, BorderLayout.NORTH);
-        panelPrincipal.add(panelFormulario, BorderLayout.CENTER);
-        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
+        panelPrincipal.add(
+                lblTitulo,
+                BorderLayout.NORTH
+        );
+
+        panelPrincipal.add(
+                panelFormulario,
+                BorderLayout.CENTER
+        );
+
+        panelPrincipal.add(
+                panelBotones,
+                BorderLayout.SOUTH
+        );
 
         add(panelPrincipal);
     }
 
     private void guardarPedido() {
 
-        String textoId = txtId.getText().trim();
-        String direccion = txtDireccion.getText().trim();
-        String textoDistancia = txtDistancia.getText().trim();
+        String direccion =
+                txtDireccion.getText().trim();
 
-        if (textoId.isEmpty()
-                || direccion.isEmpty()
+        String textoDistancia =
+                txtDistancia.getText().trim();
+
+        if (direccion.isEmpty()
                 || textoDistancia.isEmpty()) {
 
             JOptionPane.showMessageDialog(
@@ -116,21 +149,11 @@ public class VentanaRegistroPedido extends JFrame {
 
         try {
 
-            int id = Integer.parseInt(textoId);
-            int distancia = Integer.parseInt(textoDistancia);
-
-            if (id <= 0) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "El ID debe ser mayor que cero.",
-                        "ID inválido",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
+            int distancia =
+                    Integer.parseInt(textoDistancia);
 
             if (distancia <= 0) {
+
                 JOptionPane.showMessageDialog(
                         this,
                         "La distancia debe ser mayor que cero.",
@@ -141,18 +164,8 @@ public class VentanaRegistroPedido extends JFrame {
                 return;
             }
 
-            if (controlador.existePedido(id)) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Ya existe un pedido con el ID " + id + ".",
-                        "ID duplicado",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            String tipo = (String) cmbTipo.getSelectedItem();
+            String tipo =
+                    (String) cmbTipo.getSelectedItem();
 
             Pedido pedido;
 
@@ -160,7 +173,7 @@ public class VentanaRegistroPedido extends JFrame {
 
                 case "Comida":
                     pedido = new PedidoComida(
-                            id,
+                            0,
                             direccion,
                             distancia
                     );
@@ -168,7 +181,7 @@ public class VentanaRegistroPedido extends JFrame {
 
                 case "Encomienda":
                     pedido = new PedidoEncomienda(
-                            id,
+                            0,
                             direccion,
                             distancia
                     );
@@ -176,7 +189,7 @@ public class VentanaRegistroPedido extends JFrame {
 
                 case "Express":
                     pedido = new PedidoExpress(
-                            id,
+                            0,
                             direccion,
                             distancia
                     );
@@ -188,22 +201,38 @@ public class VentanaRegistroPedido extends JFrame {
                     );
             }
 
-            controlador.registrarPedido(pedido);
+            if (pedidoDAO.guardar(pedido)) {
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Pedido registrado correctamente.",
-                    "Registro exitoso",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+                controlador.registrarPedido(pedido);
 
-            limpiarCampos();
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Pedido registrado correctamente.\n"
+                                + "ID generado: "
+                                + pedido.getIdPedido(),
+                        "Registro exitoso",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+                limpiarCampos();
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No se pudo guardar el pedido "
+                                + "en la base de datos.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
 
         } catch (NumberFormatException e) {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "El ID y la distancia deben contener solo números enteros.",
+                    "La distancia debe contener "
+                            + "solo números enteros.",
                     "Formato incorrecto",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -211,11 +240,11 @@ public class VentanaRegistroPedido extends JFrame {
     }
 
     private void limpiarCampos() {
-        txtId.setText("");
+
         txtDireccion.setText("");
         txtDistancia.setText("");
         cmbTipo.setSelectedIndex(0);
 
-        txtId.requestFocus();
+        txtDireccion.requestFocus();
     }
 }

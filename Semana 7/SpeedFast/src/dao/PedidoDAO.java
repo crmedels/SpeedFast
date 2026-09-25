@@ -10,6 +10,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PedidoDAO {
 
@@ -59,6 +61,7 @@ public class PedidoDAO {
             }
 
         } catch (SQLException e) {
+
             System.out.println(
                     "Error al guardar el pedido en la base de datos."
             );
@@ -67,6 +70,45 @@ public class PedidoDAO {
         }
 
         return false;
+    }
+
+    public List<Object[]> listarTodos() {
+
+        List<Object[]> pedidos = new ArrayList<>();
+
+        String sql = """
+                SELECT id, tipo, direccion, estado
+                FROM pedido
+                ORDER BY id
+                """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql);
+             ResultSet resultado = sentencia.executeQuery()) {
+
+            while (resultado.next()) {
+
+                Object[] pedido = {
+                        resultado.getInt("id"),
+                        resultado.getString("tipo"),
+                        resultado.getString("direccion"),
+                        resultado.getString("estado")
+                };
+
+                pedidos.add(pedido);
+            }
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "Error al listar los pedidos de la base de datos."
+            );
+
+            e.printStackTrace();
+        }
+
+        return pedidos;
     }
 
     private String obtenerTipoPedido(Pedido pedido) {
