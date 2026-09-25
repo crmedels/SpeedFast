@@ -8,9 +8,11 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Repartidor implements Runnable {
 
+    private int idRepartidor;
     private final String nombre;
     private final ZonaDeCarga zonaDeCarga;
 
+    // Constructor original para el funcionamiento de SpeedFast
     public Repartidor(String nombre, ZonaDeCarga zonaDeCarga) {
 
         if (nombre == null || nombre.isBlank()) {
@@ -27,6 +29,32 @@ public class Repartidor implements Runnable {
 
         this.nombre = nombre.trim();
         this.zonaDeCarga = zonaDeCarga;
+    }
+
+    // Constructor para repartidores obtenidos desde la base de datos
+    public Repartidor(int idRepartidor, String nombre) {
+
+        if (nombre == null || nombre.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El nombre del repartidor no puede estar vacío."
+            );
+        }
+
+        this.idRepartidor = idRepartidor;
+        this.nombre = nombre.trim();
+        this.zonaDeCarga = null;
+    }
+
+    public int getIdRepartidor() {
+        return idRepartidor;
+    }
+
+    public void setIdRepartidor(int idRepartidor) {
+        this.idRepartidor = idRepartidor;
+    }
+
+    public String getNombre() {
+        return nombre;
     }
 
     @Override
