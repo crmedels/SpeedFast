@@ -1,6 +1,7 @@
 ### IntelliJ IDEA ###
 .idea/
 *.iml
+!SpeedFast.iml
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
