@@ -16,6 +16,7 @@ public class VentanaListaPedidos extends JFrame {
     private DefaultTableModel modeloTabla;
     private JButton btnRefrescar;
     private JButton btnVolver;
+    private Timer timerActualizacion;
 
     public VentanaListaPedidos(ControladorDeEnvios controlador) {
 
@@ -24,6 +25,7 @@ public class VentanaListaPedidos extends JFrame {
         configurarVentana();
         crearComponentes();
         cargarPedidos();
+        iniciarActualizacionAutomatica();
     }
 
     private void configurarVentana() {
@@ -125,5 +127,25 @@ public class VentanaListaPedidos extends JFrame {
         for (Object[] pedido : pedidoDAO.listarTodos()) {
             modeloTabla.addRow(pedido);
         }
+    }
+
+    private void iniciarActualizacionAutomatica() {
+
+        timerActualizacion = new Timer(
+                5000,
+                e -> cargarPedidos()
+        );
+
+        timerActualizacion.start();
+    }
+
+    @Override
+    public void dispose() {
+
+        if (timerActualizacion != null) {
+            timerActualizacion.stop();
+        }
+
+        super.dispose();
     }
 }
