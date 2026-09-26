@@ -10,7 +10,7 @@ public class ConexionBD {
             "jdbc:mysql://localhost:3306/speedfast_db";
 
     private static final String USUARIO = "root";
-    private static final String CONTRASENA = "";
+    private static final String CONTRASENA = "SQL12345";
 
     public static Connection conectar() throws SQLException {
         return DriverManager.getConnection(URL, USUARIO, CONTRASENA);
