@@ -1,52 +1,61 @@
-# SpeedFast - Semana 6
+# SpeedFast - Semana 7
 
-Proyecto desarrollado para la actividad de Semana 6 de Desarrollo Orientado a Objetos II.
+Actividad formativa de Desarrollo Orientado a Objetos II.
 
-## Descripción
+Durante esta semana se incorporó persistencia de datos al sistema SpeedFast mediante una base de datos MySQL y conexión JDBC desde Java.
 
-En esta semana se implementó una interfaz gráfica en Java Swing para gestionar los pedidos de SpeedFast.
+## Funcionalidades implementadas
 
-La aplicación permite:
+- Conexión entre Java y MySQL mediante JDBC.
+- Base de datos `speedfast_db`.
+- Registro de pedidos en la base de datos.
+- Registro de repartidores en la base de datos.
+- Registro de entregas asociando pedidos y repartidores.
+- Consulta de repartidores mediante `ResultSet`.
+- Consulta de pedidos almacenados en MySQL.
+- Visualización de pedidos mediante `JTable`.
+- Uso de `PreparedStatement` para las operaciones SQL.
+- Recuperación automática de identificadores generados por MySQL.
 
-- Registrar nuevos pedidos.
-- Seleccionar el tipo de pedido: comida, encomienda o express.
-- Validar los datos ingresados.
-- Visualizar los pedidos registrados en una tabla.
-- Asignar un repartidor.
-- Iniciar la entrega de un pedido.
-- Actualizar la información mostrada en pantalla.
+## Clases DAO
+
+Se incorporaron las siguientes clases para gestionar el acceso a los datos:
+
+- `ConexionBD`
+- `PedidoDAO`
+- `RepartidorDAO`
+- `EntregaDAO`
+
+## Base de datos
+
+La base de datos utilizada es:
+
+`speedfast_db`
+
+Contiene las tablas:
+
+- `pedido`
+- `repartidor`
+- `entrega`
+
+La tabla `entrega` relaciona los pedidos con los repartidores mediante claves foráneas.
+
+El archivo `speedfast_db.sql` contiene el script utilizado para crear la base de datos y sus tablas.
 
 ## Tecnologías utilizadas
 
 - Java
 - Java Swing
-- JFrame
-- JTable
-- DefaultTableModel
-- JOptionPane
+- JDBC
+- MySQL
+- MySQL Connector/J
 - IntelliJ IDEA
-
-## Estructura del proyecto
-
-El proyecto se encuentra organizado principalmente en los siguientes paquetes:
-
-- `modelo`: contiene las clases relacionadas con los pedidos y sus datos.
-- `vista`: contiene las ventanas gráficas del sistema.
-- `controlador`: gestiona los pedidos y comunica la lógica con las vistas.
-- `main`: contiene la clase principal que inicia la aplicación.
-- `interfaces`: contiene las interfaces utilizadas por los pedidos.
-
-## Ventanas principales
-
-- `VentanaPrincipal`
-- `VentanaRegistroPedido`
-- `VentanaListaPedidos`
-- `VentanaEntrega`
 
 ## Ejecución
 
-La aplicación se inicia desde la clase:
+Para ejecutar el proyecto es necesario:
 
-`cl.speedfast.main.Main`
-
-Al ejecutar el programa se muestra la ventana principal de SpeedFast, desde donde se puede acceder a las distintas funciones del sistema.
+1. Tener MySQL instalado y en ejecución.
+2. Ejecutar el archivo `speedfast_db.sql`.
+3. Configurar las credenciales de MySQL en `ConexionBD.java`.
+4. Ejecutar `Main.java` desde IntelliJ IDEA.
