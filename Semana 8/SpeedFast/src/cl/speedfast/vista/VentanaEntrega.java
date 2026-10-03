@@ -104,7 +104,7 @@ public class VentanaEntrega extends JFrame {
 
         cmbPedidos.removeAllItems();
 
-        for (Pedido pedido : controlador.getPedidosRegistrados()) {
+        for (Pedido pedido : pedidoDAO.listarPedidos()) {
             cmbPedidos.addItem(pedido);
         }
     }
