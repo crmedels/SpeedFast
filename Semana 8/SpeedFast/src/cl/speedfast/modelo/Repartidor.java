@@ -3,8 +3,8 @@ package cl.speedfast.modelo;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Representa a un repartidor que retira pedidos desde una zona
- * de carga compartida y realiza las entregas de forma concurrente.
+ * Representa un repartidor de SpeedFast.
+ * Permite trabajar con la base de datos y con la zona de carga.
  */
 public class Repartidor implements Runnable {
 
@@ -12,7 +12,6 @@ public class Repartidor implements Runnable {
     private final String nombre;
     private final ZonaDeCarga zonaDeCarga;
 
-    // Constructor original para el funcionamiento de SpeedFast
     public Repartidor(String nombre, ZonaDeCarga zonaDeCarga) {
 
         if (nombre == null || nombre.isBlank()) {
@@ -31,7 +30,6 @@ public class Repartidor implements Runnable {
         this.zonaDeCarga = zonaDeCarga;
     }
 
-    // Constructor para repartidores obtenidos desde la base de datos
     public Repartidor(int idRepartidor, String nombre) {
 
         if (nombre == null || nombre.isBlank()) {
@@ -58,7 +56,18 @@ public class Repartidor implements Runnable {
     }
 
     @Override
+    public String toString() {
+        return idRepartidor + " - " + nombre;
+    }
+
+    @Override
     public void run() {
+
+        if (zonaDeCarga == null) {
+            throw new IllegalStateException(
+                    "El repartidor necesita una zona de carga para ejecutarse."
+            );
+        }
 
         while (true) {
 
