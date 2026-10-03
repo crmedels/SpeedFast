@@ -12,7 +12,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 
 /**
- * Permite registrar, consultar, editar y eliminar repartidores.
+ * Gestiona repartidores y permite editarlos mediante un diálogo.
  */
 public class VentanaRegistroRepartidor extends JFrame {
 
@@ -22,11 +22,8 @@ public class VentanaRegistroRepartidor extends JFrame {
     private JTable tablaRepartidores;
     private DefaultTableModel modeloTabla;
 
-    private JButton btnRegistrar;
     private JButton btnEditar;
     private JButton btnEliminar;
-
-    private int idSeleccionado;
 
     public VentanaRegistroRepartidor() {
 
@@ -42,8 +39,8 @@ public class VentanaRegistroRepartidor extends JFrame {
         setTitle("SpeedFast - Gestión de Repartidores");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(760, 450);
-        setLocationRelativeTo(null);
         setMinimumSize(new Dimension(700, 400));
+        setLocationRelativeTo(null);
     }
 
     private void crearComponentes() {
@@ -66,6 +63,12 @@ public class VentanaRegistroRepartidor extends JFrame {
 
         JPanel panelFormulario =
                 new JPanel(new BorderLayout(10, 0));
+
+        panelFormulario.setBorder(
+                BorderFactory.createTitledBorder(
+                        "Registrar nuevo repartidor"
+                )
+        );
 
         txtNombre = new JTextField();
 
@@ -96,11 +99,13 @@ public class VentanaRegistroRepartidor extends JFrame {
         };
 
         tablaRepartidores = new JTable(modeloTabla);
+        tablaRepartidores.setRowHeight(25);
         tablaRepartidores.setSelectionMode(
                 ListSelectionModel.SINGLE_SELECTION
         );
-        tablaRepartidores.setRowHeight(25);
-        tablaRepartidores.getTableHeader().setReorderingAllowed(false);
+
+        tablaRepartidores.getTableHeader()
+                .setReorderingAllowed(false);
 
         tablaRepartidores.getColumnModel()
                 .getColumn(0).setMaxWidth(80);
@@ -109,14 +114,14 @@ public class VentanaRegistroRepartidor extends JFrame {
                 .addListSelectionListener(e -> {
 
                     if (!e.getValueIsAdjusting()) {
-                        cargarSeleccion();
+                        actualizarBotones();
                     }
                 });
 
         JPanel panelBotones =
                 new JPanel(new GridLayout(1, 6, 8, 0));
 
-        btnRegistrar = new JButton("Registrar");
+        JButton btnRegistrar = new JButton("Registrar");
         btnEditar = new JButton("Editar");
         btnEliminar = new JButton("Eliminar");
 
@@ -140,19 +145,18 @@ public class VentanaRegistroRepartidor extends JFrame {
         btnVolver.addActionListener(e -> dispose());
 
         panelPrincipal.add(panelSuperior, BorderLayout.NORTH);
+
         panelPrincipal.add(
                 new JScrollPane(tablaRepartidores),
                 BorderLayout.CENTER
         );
+
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
 
         add(panelPrincipal);
-        limpiarFormulario();
+        actualizarBotones();
     }
 
-    /**
-     * Consulta MySQL y actualiza la tabla.
-     */
     private void cargarRepartidores() {
 
         try {
@@ -160,7 +164,6 @@ public class VentanaRegistroRepartidor extends JFrame {
             List<Repartidor> repartidores =
                     repartidorDAO.readAll();
 
-            limpiarFormulario();
             modeloTabla.setRowCount(0);
 
             for (Repartidor repartidor : repartidores) {
@@ -173,43 +176,42 @@ public class VentanaRegistroRepartidor extends JFrame {
                 );
             }
 
+            actualizarBotones();
+
         } catch (SQLException e) {
             mostrarErrorSQL("cargar los repartidores", e);
         }
     }
 
-    private void cargarSeleccion() {
+    private void actualizarBotones() {
+
+        boolean haySeleccion =
+                tablaRepartidores.getSelectedRow() >= 0;
+
+        btnEditar.setEnabled(haySeleccion);
+        btnEliminar.setEnabled(haySeleccion);
+    }
+
+    private int obtenerFilaSeleccionada() {
 
         int fila = tablaRepartidores.getSelectedRow();
 
         if (fila < 0) {
-            limpiarFormulario();
-            return;
+            mostrarAdvertencia(
+                    "Seleccione un repartidor de la tabla."
+            );
         }
 
-        idSeleccionado =
-                (Integer) modeloTabla.getValueAt(fila, 0);
-
-        txtNombre.setText(
-                (String) modeloTabla.getValueAt(fila, 1)
-        );
-
-        btnRegistrar.setEnabled(false);
-        btnEditar.setEnabled(true);
-        btnEliminar.setEnabled(true);
+        return fila;
     }
 
-    private boolean validarNombre() {
-
-        String nombre = txtNombre.getText().trim();
+    private boolean validarNombre(String nombre) {
 
         if (nombre.isEmpty()) {
 
             mostrarAdvertencia(
                     "Debe ingresar el nombre del repartidor."
             );
-
-            txtNombre.requestFocusInWindow();
             return false;
         }
 
@@ -217,21 +219,6 @@ public class VentanaRegistroRepartidor extends JFrame {
 
             mostrarAdvertencia(
                     "El nombre no puede superar los 100 caracteres."
-            );
-
-            txtNombre.requestFocusInWindow();
-            return false;
-        }
-
-        return true;
-    }
-
-    private boolean validarSeleccion() {
-
-        if (idSeleccionado <= 0) {
-
-            mostrarAdvertencia(
-                    "Seleccione un repartidor de la tabla."
             );
             return false;
         }
@@ -241,14 +228,15 @@ public class VentanaRegistroRepartidor extends JFrame {
 
     private void registrarRepartidor() {
 
-        if (!validarNombre()) {
+        String nombre = txtNombre.getText().trim();
+
+        if (!validarNombre(nombre)) {
+            txtNombre.requestFocusInWindow();
             return;
         }
 
-        Repartidor repartidor = new Repartidor(
-                0,
-                txtNombre.getText().trim()
-        );
+        Repartidor repartidor =
+                new Repartidor(0, nombre);
 
         try {
 
@@ -260,6 +248,7 @@ public class VentanaRegistroRepartidor extends JFrame {
                                 + repartidor.getIdRepartidor()
                 );
 
+                limpiarFormulario();
                 cargarRepartidores();
 
             } else {
@@ -273,51 +262,106 @@ public class VentanaRegistroRepartidor extends JFrame {
         }
     }
 
+    /**
+     * Abre un diálogo con el nombre del repartidor seleccionado.
+     */
     private void editarRepartidor() {
 
-        if (!validarSeleccion() || !validarNombre()) {
+        int fila = obtenerFilaSeleccionada();
+
+        if (fila < 0) {
             return;
         }
 
-        Repartidor repartidor = new Repartidor(
-                idSeleccionado,
-                txtNombre.getText().trim()
+        int idRepartidor =
+                (Integer) modeloTabla.getValueAt(fila, 0);
+
+        JTextField txtNombreEditar = new JTextField(
+                (String) modeloTabla.getValueAt(fila, 1),
+                25
         );
 
-        try {
+        JPanel formulario =
+                new JPanel(new BorderLayout(10, 0));
 
-            if (repartidorDAO.update(repartidor)) {
+        formulario.add(
+                new JLabel("Nombre:"),
+                BorderLayout.WEST
+        );
 
-                mostrarExito(
-                        "Repartidor actualizado correctamente."
-                );
+        formulario.add(
+                txtNombreEditar,
+                BorderLayout.CENTER
+        );
 
-                cargarRepartidores();
+        while (true) {
 
-            } else {
+            int respuesta = JOptionPane.showConfirmDialog(
+                    this,
+                    formulario,
+                    "Editar repartidor #" + idRepartidor,
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
 
-                mostrarAdvertencia(
-                        "El repartidor ya no existe en la base de datos."
-                );
-
-                cargarRepartidores();
+            if (respuesta != JOptionPane.OK_OPTION) {
+                return;
             }
 
-        } catch (SQLException e) {
-            mostrarErrorSQL("editar el repartidor", e);
+            String nombre = txtNombreEditar.getText().trim();
+
+            if (!validarNombre(nombre)) {
+                continue;
+            }
+
+            Repartidor repartidor =
+                    new Repartidor(idRepartidor, nombre);
+
+            try {
+
+                if (repartidorDAO.update(repartidor)) {
+
+                    mostrarExito(
+                            "Repartidor actualizado correctamente."
+                    );
+
+                } else {
+
+                    mostrarAdvertencia(
+                            "El repartidor ya no existe en la base de datos."
+                    );
+                }
+
+                cargarRepartidores();
+
+            } catch (SQLException e) {
+                mostrarErrorSQL("editar el repartidor", e);
+            }
+
+            return;
         }
     }
 
     private void eliminarRepartidor() {
 
-        if (!validarSeleccion()) {
+        int fila = obtenerFilaSeleccionada();
+
+        if (fila < 0) {
             return;
         }
+
+        int idRepartidor =
+                (Integer) modeloTabla.getValueAt(fila, 0);
+
+        String nombre =
+                (String) modeloTabla.getValueAt(fila, 1);
 
         int respuesta = JOptionPane.showConfirmDialog(
                 this,
                 "¿Desea eliminar el repartidor #"
-                        + idSeleccionado
+                        + idRepartidor
+                        + " - "
+                        + nombre
                         + "?",
                 "Confirmar eliminación",
                 JOptionPane.YES_NO_OPTION,
@@ -330,22 +374,20 @@ public class VentanaRegistroRepartidor extends JFrame {
 
         try {
 
-            if (repartidorDAO.delete(idSeleccionado)) {
+            if (repartidorDAO.delete(idRepartidor)) {
 
                 mostrarExito(
                         "Repartidor eliminado correctamente."
                 );
-
-                cargarRepartidores();
 
             } else {
 
                 mostrarAdvertencia(
                         "El repartidor ya no existe en la base de datos."
                 );
-
-                cargarRepartidores();
             }
+
+            cargarRepartidores();
 
         } catch (SQLIntegrityConstraintViolationException e) {
 
@@ -361,15 +403,9 @@ public class VentanaRegistroRepartidor extends JFrame {
 
     private void limpiarFormulario() {
 
-        idSeleccionado = 0;
-
-        tablaRepartidores.clearSelection();
         txtNombre.setText("");
-
-        btnRegistrar.setEnabled(true);
-        btnEditar.setEnabled(false);
-        btnEliminar.setEnabled(false);
-
+        tablaRepartidores.clearSelection();
+        actualizarBotones();
         txtNombre.requestFocusInWindow();
     }
 
