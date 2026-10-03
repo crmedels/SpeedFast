@@ -3,14 +3,27 @@ package cl.speedfast.vista;
 import cl.speedfast.controlador.ControladorDeEnvios;
 import cl.speedfast.modelo.EstadoPedido;
 import cl.speedfast.modelo.Pedido;
+import cl.speedfast.modelo.Repartidor;
+import cl.speedfast.modelo.Entrega;
+import dao.EntregaDAO;
+import dao.PedidoDAO;
+import dao.RepartidorDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class VentanaEntrega extends JFrame {
 
     private final ControladorDeEnvios controlador;
+    private final RepartidorDAO repartidorDAO;
+    private final PedidoDAO pedidoDAO;
+    private final EntregaDAO entregaDAO;
+
+    private Repartidor repartidorAsignado;
+    private Pedido pedidoConRepartidorAsignado;
 
     private JComboBox<Pedido> cmbPedidos;
     private JTextField txtRepartidor;
@@ -22,6 +35,9 @@ public class VentanaEntrega extends JFrame {
 
     public VentanaEntrega(ControladorDeEnvios controlador) {
         this.controlador = controlador;
+        this.repartidorDAO = new RepartidorDAO();
+        this.pedidoDAO = new PedidoDAO();
+        this.entregaDAO = new EntregaDAO();
 
         configurarVentana();
         crearComponentes();
@@ -49,7 +65,7 @@ public class VentanaEntrega extends JFrame {
         JPanel panelFormulario = new JPanel(new GridLayout(2, 2, 10, 15));
 
         JLabel lblPedido = new JLabel("Pedido:");
-        JLabel lblRepartidor = new JLabel("Repartidor:");
+        JLabel lblRepartidor = new JLabel("ID Repartidor:");
 
         cmbPedidos = new JComboBox<>();
         txtRepartidor = new JTextField();
@@ -96,7 +112,7 @@ public class VentanaEntrega extends JFrame {
     private void asignarRepartidor() {
 
         Pedido pedido = (Pedido) cmbPedidos.getSelectedItem();
-        String nombreRepartidor = txtRepartidor.getText().trim();
+        String textoIdRepartidor = txtRepartidor.getText().trim();
 
         if (pedido == null) {
 
@@ -110,11 +126,11 @@ public class VentanaEntrega extends JFrame {
             return;
         }
 
-        if (nombreRepartidor.isEmpty()) {
+        if (textoIdRepartidor.isEmpty()) {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Debe ingresar el nombre del repartidor.",
+                    "Debe ingresar el ID del repartidor.",
                     "Datos incompletos",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -134,12 +150,53 @@ public class VentanaEntrega extends JFrame {
             return;
         }
 
-        pedido.asignarRepartidor(nombreRepartidor);
+        int idRepartidor;
+
+        try {
+
+            idRepartidor = Integer.parseInt(textoIdRepartidor);
+
+        } catch (NumberFormatException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "El ID del repartidor debe ser un número entero.",
+                    "ID inválido",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        Repartidor repartidor =
+                repartidorDAO.buscarPorId(idRepartidor);
+
+        if (repartidor == null) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No existe un repartidor con el ID ingresado.",
+                    "Repartidor no encontrado",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        pedido.asignarRepartidor(
+                repartidor.getNombre()
+        );
+
+        repartidorAsignado = repartidor;
+        pedidoConRepartidorAsignado = pedido;
 
         JOptionPane.showMessageDialog(
                 this,
-                "Repartidor asignado correctamente al pedido #"
-                        + pedido.getIdPedido() + ".",
+                "Repartidor "
+                        + repartidor.getNombre()
+                        + " asignado correctamente al pedido #"
+                        + pedido.getIdPedido()
+                        + ".",
                 "Asignación exitosa",
                 JOptionPane.INFORMATION_MESSAGE
         );
@@ -163,7 +220,8 @@ public class VentanaEntrega extends JFrame {
             return;
         }
 
-        if (pedido.getNombreRepartidor() == null) {
+        if (repartidorAsignado == null
+                || pedidoConRepartidorAsignado != pedido) {
 
             JOptionPane.showMessageDialog(
                     this,
@@ -199,19 +257,67 @@ public class VentanaEntrega extends JFrame {
             return;
         }
 
+        Entrega entrega = new Entrega(
+                pedido.getIdPedido(),
+                repartidorAsignado.getIdRepartidor(),
+                LocalDate.now(),
+                LocalTime.now()
+        );
+
+        boolean entregaGuardada =
+                entregaDAO.guardar(entrega);
+
+        if (!entregaGuardada) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No fue posible guardar la entrega en la base de datos.",
+                    "Error de base de datos",
+                    JOptionPane.ERROR_MESSAGE
+            );
+
+            return;
+        }
+
+        boolean estadoActualizado =
+                pedidoDAO.actualizarEstado(
+                        pedido.getIdPedido(),
+                        EstadoPedido.EN_REPARTO
+                );
+
+        if (!estadoActualizado) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "La entrega fue registrada, pero no fue posible actualizar el estado del pedido.",
+                    "Error de base de datos",
+                    JOptionPane.ERROR_MESSAGE
+            );
+
+            return;
+        }
+
         controlador.reservarPedido(pedido);
         controlador.despacharPedido(pedido);
 
-        pedido.setEstado(EstadoPedido.EN_REPARTO);
+        pedido.setEstado(
+                EstadoPedido.EN_REPARTO
+        );
 
         JOptionPane.showMessageDialog(
                 this,
                 "La entrega del pedido #"
                         + pedido.getIdPedido()
-                        + " ha comenzado.",
+                        + " ha comenzado."
+                        + "\nEntrega registrada con ID "
+                        + entrega.getIdEntrega()
+                        + ".",
                 "Entrega iniciada",
                 JOptionPane.INFORMATION_MESSAGE
         );
+
+        repartidorAsignado = null;
+        pedidoConRepartidorAsignado = null;
 
         cargarPedidos();
     }

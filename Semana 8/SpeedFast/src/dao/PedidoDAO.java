@@ -1,5 +1,6 @@
 package dao;
 
+import cl.speedfast.modelo.EstadoPedido;
 import cl.speedfast.modelo.Pedido;
 import cl.speedfast.modelo.PedidoComida;
 import cl.speedfast.modelo.PedidoEncomienda;
@@ -109,6 +110,48 @@ public class PedidoDAO {
         }
 
         return pedidos;
+    }
+
+    public boolean actualizarEstado(
+            int idPedido,
+            EstadoPedido estado
+    ) {
+
+        String sql = """
+            UPDATE pedido
+            SET estado = ?
+            WHERE id = ?
+            """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setString(
+                    1,
+                    estado.name()
+            );
+
+            sentencia.setInt(
+                    2,
+                    idPedido
+            );
+
+            int filasAfectadas =
+                    sentencia.executeUpdate();
+
+            return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "Error al actualizar el estado del pedido."
+            );
+
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     private String obtenerTipoPedido(Pedido pedido) {

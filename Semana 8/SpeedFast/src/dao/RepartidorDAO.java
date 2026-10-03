@@ -93,4 +93,41 @@ public class RepartidorDAO {
 
         return repartidores;
     }
+
+    public Repartidor buscarPorId(int idRepartidor) {
+
+        String sql = """
+            SELECT id, nombre
+            FROM repartidor
+            WHERE id = ?
+            """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setInt(1, idRepartidor);
+
+            try (ResultSet resultado = sentencia.executeQuery()) {
+
+                if (resultado.next()) {
+
+                    int id = resultado.getInt("id");
+                    String nombre = resultado.getString("nombre");
+
+                    return new Repartidor(id, nombre);
+                }
+            }
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "Error al buscar el repartidor por ID."
+            );
+
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 }
