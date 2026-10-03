@@ -6,17 +6,17 @@ import cl.speedfast.modelo.PedidoComida;
 import cl.speedfast.modelo.PedidoEncomienda;
 import cl.speedfast.modelo.PedidoExpress;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
+/**
+ * Gestiona las operaciones CRUD de pedidos mediante JDBC.
+ */
 public class PedidoDAO {
 
-    public boolean guardar(Pedido pedido) {
+    public boolean create(Pedido pedido) throws SQLException {
 
         String sql = """
                 INSERT INTO pedido (direccion, tipo, estado)
@@ -29,56 +29,35 @@ public class PedidoDAO {
                      Statement.RETURN_GENERATED_KEYS
              )) {
 
-            sentencia.setString(
-                    1,
-                    pedido.getDireccionEntrega()
-            );
+            sentencia.setString(1, pedido.getDireccionEntrega());
+            sentencia.setString(2, obtenerTipoPedido(pedido));
+            sentencia.setString(3, pedido.getEstado().name());
 
-            sentencia.setString(
-                    2,
-                    obtenerTipoPedido(pedido)
-            );
-
-            sentencia.setString(
-                    3,
-                    pedido.getEstado().name()
-            );
-
-            int filasAfectadas = sentencia.executeUpdate();
-
-            if (filasAfectadas > 0) {
-
-                try (ResultSet clavesGeneradas =
-                             sentencia.getGeneratedKeys()) {
-
-                    if (clavesGeneradas.next()) {
-                        pedido.setIdPedido(
-                                clavesGeneradas.getInt(1)
-                        );
-                    }
-                }
-
-                return true;
+            if (sentencia.executeUpdate() == 0) {
+                return false;
             }
 
-        } catch (SQLException e) {
+            try (ResultSet claves = sentencia.getGeneratedKeys()) {
 
-            System.out.println(
-                    "Error al guardar el pedido en la base de datos."
-            );
+                if (claves.next()) {
+                    pedido.setIdPedido(claves.getInt(1));
+                }
+            }
 
-            e.printStackTrace();
+            return true;
         }
-
-        return false;
     }
 
-    public List<Object[]> listarTodos() {
+    /**
+     * Reconstruye las subclases y restaura el estado persistido.
+     * La distancia no se almacena en el esquema actual.
+     */
+    public List<Pedido> readAll() throws SQLException {
 
-        List<Object[]> pedidos = new ArrayList<>();
+        List<Pedido> pedidos = new ArrayList<>();
 
         String sql = """
-                SELECT id, tipo, direccion, estado
+                SELECT id, direccion, tipo, estado
                 FROM pedido
                 ORDER BY id
                 """;
@@ -90,94 +69,32 @@ public class PedidoDAO {
 
             while (resultado.next()) {
 
-                Object[] pedido = {
-                        resultado.getInt("id"),
-                        resultado.getString("tipo"),
-                        resultado.getString("direccion"),
-                        resultado.getString("estado")
-                };
-
-                pedidos.add(pedido);
-            }
-
-        } catch (SQLException e) {
-
-            System.out.println(
-                    "Error al listar los pedidos de la base de datos."
-            );
-
-            e.printStackTrace();
-        }
-
-        return pedidos;
-    }
-
-    public List<Pedido> listarPedidos() {
-
-        List<Pedido> pedidos = new ArrayList<>();
-
-        String sql = """
-            SELECT id, direccion, tipo, estado
-            FROM pedido
-            ORDER BY id
-            """;
-
-        try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement sentencia =
-                     conexion.prepareStatement(sql);
-             ResultSet resultado = sentencia.executeQuery()) {
-
-            while (resultado.next()) {
-
                 int id = resultado.getInt("id");
-                String direccion =
-                        resultado.getString("direccion");
+                String direccion = resultado.getString("direccion");
 
-                String tipo =
-                        resultado.getString("tipo");
+                String tipo = resultado.getString("tipo")
+                        .trim().toUpperCase(Locale.ROOT);
 
-                EstadoPedido estado =
-                        EstadoPedido.valueOf(
-                                resultado
-                                        .getString("estado")
-                                        .trim()
-                                        .toUpperCase()
-                        );
+                EstadoPedido estado = EstadoPedido.valueOf(
+                        resultado.getString("estado")
+                                .trim().toUpperCase(Locale.ROOT)
+                );
 
-                Pedido pedido;
+                Pedido pedido = switch (tipo) {
 
-                switch (tipo.trim().toUpperCase()) {
+                    case "COMIDA" ->
+                            new PedidoComida(id, direccion, 0);
 
-                    case "COMIDA":
-                        pedido = new PedidoComida(
-                                id,
-                                direccion,
-                                0
-                        );
-                        break;
+                    case "ENCOMIENDA" ->
+                            new PedidoEncomienda(id, direccion, 0);
 
-                    case "ENCOMIENDA":
-                        pedido = new PedidoEncomienda(
-                                id,
-                                direccion,
-                                0
-                        );
-                        break;
+                    case "EXPRESS" ->
+                            new PedidoExpress(id, direccion, 0);
 
-                    case "EXPRESS":
-                        pedido = new PedidoExpress(
-                                id,
-                                direccion,
-                                0
-                        );
-                        break;
-
-                    default:
-                        throw new IllegalArgumentException(
-                                "Tipo de pedido no reconocido: "
-                                        + tipo
-                        );
-                }
+                    default -> throw new IllegalArgumentException(
+                            "Tipo de pedido no reconocido: " + tipo
+                    );
+                };
 
                 if (estado != EstadoPedido.PENDIENTE) {
                     pedido.setEstado(estado);
@@ -185,25 +102,94 @@ public class PedidoDAO {
 
                 pedidos.add(pedido);
             }
-
-        } catch (SQLException e) {
-
-            System.out.println(
-                    "Error al recuperar los pedidos de la base de datos."
-            );
-
-            e.printStackTrace();
-
-        } catch (IllegalArgumentException e) {
-
-            System.out.println(
-                    "Error al reconstruir un pedido desde la base de datos."
-            );
-
-            e.printStackTrace();
         }
 
         return pedidos;
+    }
+
+    public boolean update(Pedido pedido) throws SQLException {
+
+        String sql = """
+                UPDATE pedido
+                SET direccion = ?, tipo = ?, estado = ?
+                WHERE id = ?
+                """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setString(1, pedido.getDireccionEntrega());
+            sentencia.setString(2, obtenerTipoPedido(pedido));
+            sentencia.setString(3, pedido.getEstado().name());
+            sentencia.setInt(4, pedido.getIdPedido());
+
+            return sentencia.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * La clave foránea impide eliminar pedidos con entregas asociadas.
+     */
+    public boolean delete(int idPedido) throws SQLException {
+
+        String sql = """
+                DELETE FROM pedido
+                WHERE id = ?
+                """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setInt(1, idPedido);
+
+            return sentencia.executeUpdate() > 0;
+        }
+    }
+
+    // Compatibilidad con las ventanas existentes.
+    public boolean guardar(Pedido pedido) {
+
+        try {
+            return create(pedido);
+
+        } catch (SQLException e) {
+            System.err.println("Error al guardar el pedido.");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<Pedido> listarPedidos() {
+
+        try {
+            return readAll();
+
+        } catch (SQLException | IllegalArgumentException e) {
+            System.err.println("Error al recuperar los pedidos.");
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    public List<Object[]> listarTodos() {
+
+        List<Object[]> filas = new ArrayList<>();
+
+        for (Pedido pedido : listarPedidos()) {
+
+            filas.add(
+                    new Object[]{
+                            pedido.getIdPedido(),
+                            obtenerTipoPedido(pedido),
+                            pedido.getDireccionEntrega(),
+                            pedido.getEstado().name()
+                    }
+            );
+        }
+
+        return filas;
     }
 
     public boolean actualizarEstado(
@@ -212,43 +198,28 @@ public class PedidoDAO {
     ) {
 
         String sql = """
-            UPDATE pedido
-            SET estado = ?
-            WHERE id = ?
-            """;
+                UPDATE pedido
+                SET estado = ?
+                WHERE id = ?
+                """;
 
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement sentencia =
                      conexion.prepareStatement(sql)) {
 
-            sentencia.setString(
-                    1,
-                    estado.name()
-            );
+            sentencia.setString(1, estado.name());
+            sentencia.setInt(2, idPedido);
 
-            sentencia.setInt(
-                    2,
-                    idPedido
-            );
-
-            int filasAfectadas =
-                    sentencia.executeUpdate();
-
-            return filasAfectadas > 0;
+            return sentencia.executeUpdate() > 0;
 
         } catch (SQLException e) {
-
-            System.out.println(
-                    "Error al actualizar el estado del pedido."
-            );
-
+            System.err.println("Error al actualizar el estado del pedido.");
             e.printStackTrace();
+            return false;
         }
-
-        return false;
     }
 
-    private String obtenerTipoPedido(Pedido pedido) {
+    public String obtenerTipoPedido(Pedido pedido) {
 
         if (pedido instanceof PedidoComida) {
             return "COMIDA";
