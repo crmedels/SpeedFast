@@ -2,17 +2,16 @@ package dao;
 
 import cl.speedfast.modelo.Repartidor;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Gestiona la persistencia de repartidores mediante JDBC.
+ */
 public class RepartidorDAO {
 
-    public boolean guardar(Repartidor repartidor) {
+    public boolean create(Repartidor repartidor) throws SQLException {
 
         String sql = """
                 INSERT INTO repartidor (nombre)
@@ -27,36 +26,22 @@ public class RepartidorDAO {
 
             sentencia.setString(1, repartidor.getNombre());
 
-            int filasAfectadas = sentencia.executeUpdate();
-
-            if (filasAfectadas > 0) {
-
-                try (ResultSet clavesGeneradas =
-                             sentencia.getGeneratedKeys()) {
-
-                    if (clavesGeneradas.next()) {
-                        repartidor.setIdRepartidor(
-                                clavesGeneradas.getInt(1)
-                        );
-                    }
-                }
-
-                return true;
+            if (sentencia.executeUpdate() == 0) {
+                return false;
             }
 
-        } catch (SQLException e) {
+            try (ResultSet claves = sentencia.getGeneratedKeys()) {
 
-            System.out.println(
-                    "Error al guardar el repartidor en la base de datos."
-            );
+                if (claves.next()) {
+                    repartidor.setIdRepartidor(claves.getInt(1));
+                }
+            }
 
-            e.printStackTrace();
+            return true;
         }
-
-        return false;
     }
 
-    public List<Repartidor> listarTodos() {
+    public List<Repartidor> readAll() throws SQLException {
 
         List<Repartidor> repartidores = new ArrayList<>();
 
@@ -73,34 +58,90 @@ public class RepartidorDAO {
 
             while (resultado.next()) {
 
-                int id = resultado.getInt("id");
-                String nombre = resultado.getString("nombre");
-
-                Repartidor repartidor =
-                        new Repartidor(id, nombre);
-
-                repartidores.add(repartidor);
+                repartidores.add(
+                        new Repartidor(
+                                resultado.getInt("id"),
+                                resultado.getString("nombre")
+                        )
+                );
             }
-
-        } catch (SQLException e) {
-
-            System.out.println(
-                    "Error al listar los repartidores."
-            );
-
-            e.printStackTrace();
         }
 
         return repartidores;
     }
 
+    public boolean update(Repartidor repartidor) throws SQLException {
+
+        String sql = """
+                UPDATE repartidor
+                SET nombre = ?
+                WHERE id = ?
+                """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setString(1, repartidor.getNombre());
+            sentencia.setInt(2, repartidor.getIdRepartidor());
+
+            return sentencia.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * MySQL impide eliminar repartidores asociados a entregas.
+     * La ventana muestra el motivo al usuario.
+     */
+    public boolean delete(int idRepartidor) throws SQLException {
+
+        String sql = """
+                DELETE FROM repartidor
+                WHERE id = ?
+                """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setInt(1, idRepartidor);
+
+            return sentencia.executeUpdate() > 0;
+        }
+    }
+
+    // Mantiene compatibles las ventanas de las semanas anteriores.
+    public boolean guardar(Repartidor repartidor) {
+
+        try {
+            return create(repartidor);
+
+        } catch (SQLException e) {
+            System.err.println("Error al guardar el repartidor.");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<Repartidor> listarTodos() {
+
+        try {
+            return readAll();
+
+        } catch (SQLException e) {
+            System.err.println("Error al listar los repartidores.");
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
     public Repartidor buscarPorId(int idRepartidor) {
 
         String sql = """
-            SELECT id, nombre
-            FROM repartidor
-            WHERE id = ?
-            """;
+                SELECT id, nombre
+                FROM repartidor
+                WHERE id = ?
+                """;
 
         try (Connection conexion = ConexionBD.conectar();
              PreparedStatement sentencia =
@@ -112,19 +153,15 @@ public class RepartidorDAO {
 
                 if (resultado.next()) {
 
-                    int id = resultado.getInt("id");
-                    String nombre = resultado.getString("nombre");
-
-                    return new Repartidor(id, nombre);
+                    return new Repartidor(
+                            resultado.getInt("id"),
+                            resultado.getString("nombre")
+                    );
                 }
             }
 
         } catch (SQLException e) {
-
-            System.out.println(
-                    "Error al buscar el repartidor por ID."
-            );
-
+            System.err.println("Error al buscar el repartidor.");
             e.printStackTrace();
         }
 
