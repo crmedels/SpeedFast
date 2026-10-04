@@ -12,6 +12,7 @@ import dao.RepartidorDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -26,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Gestiona entregas, su finalización y las correcciones de historial.
+ * Gestiona entregas, filtros, finalización y correcciones de historial.
  */
 public class VentanaEntrega extends JFrame {
 
@@ -43,10 +44,17 @@ public class VentanaEntrega extends JFrame {
 
     private JTable tablaEntregas;
     private DefaultTableModel modeloTabla;
+    private TableRowSorter<DefaultTableModel> ordenadorTabla;
+
+    private JComboBox<Object> cmbFiltroPedido;
+    private JComboBox<Object> cmbFiltroRepartidor;
+    private final JLabel lblResumen = new JLabel();
 
     private Pedido pedidoAsignado;
     private Repartidor repartidorAsignado;
+
     private boolean operacionEnCurso;
+    private boolean actualizandoFiltros;
 
     public VentanaEntrega(ControladorDeEnvios controlador) {
         this.controlador = controlador;
@@ -75,8 +83,8 @@ public class VentanaEntrega extends JFrame {
     private void configurarVentana() {
         setTitle("SpeedFast - Gestión de Entregas");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(1050, 550);
-        setMinimumSize(new Dimension(900, 450));
+        setSize(1100, 650);
+        setMinimumSize(new Dimension(950, 550));
         setLocationRelativeTo(null);
     }
 
@@ -126,7 +134,11 @@ public class VentanaEntrega extends JFrame {
 
         tablaEntregas = new JTable(modeloTabla);
         tablaEntregas.setRowHeight(25);
-        tablaEntregas.setAutoCreateRowSorter(true);
+
+        ordenadorTabla = new TableRowSorter<>(modeloTabla);
+        tablaEntregas.setRowSorter(ordenadorTabla);
+        ordenadorTabla.addRowSorterListener(e -> actualizarResumen());
+
         tablaEntregas.setSelectionMode(
                 ListSelectionModel.SINGLE_SELECTION
         );
@@ -176,14 +188,197 @@ public class VentanaEntrega extends JFrame {
         cmbPedidos.addActionListener(e -> limpiarAsignacion());
         cmbRepartidores.addActionListener(e -> limpiarAsignacion());
 
-        principal.add(superior, BorderLayout.NORTH);
-        principal.add(
+        JPanel centro = new JPanel(new BorderLayout(10, 10));
+        centro.add(crearPanelFiltros(), BorderLayout.NORTH);
+        centro.add(
                 new JScrollPane(tablaEntregas),
                 BorderLayout.CENTER
         );
+
+        principal.add(superior, BorderLayout.NORTH);
+        principal.add(centro, BorderLayout.CENTER);
         principal.add(botones, BorderLayout.SOUTH);
 
         add(principal);
+    }
+
+    /**
+     * Los filtros consultan la tabla y son independientes de la asignación.
+     */
+    private JPanel crearPanelFiltros() {
+        cmbFiltroPedido = new JComboBox<>();
+        cmbFiltroRepartidor = new JComboBox<>();
+
+        cmbFiltroPedido.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> lista,
+                    Object valor,
+                    int indice,
+                    boolean seleccionado,
+                    boolean tieneFoco
+            ) {
+                Object texto = valor instanceof Pedido pedido
+                        ? pedido.getIdPedido() + " - "
+                          + pedido.getDireccionEntrega()
+                        : valor;
+
+                return super.getListCellRendererComponent(
+                        lista,
+                        texto,
+                        indice,
+                        seleccionado,
+                        tieneFoco
+                );
+            }
+        });
+
+        JButton btnMostrarTodas = new JButton("Mostrar todas");
+
+        btnMostrarTodas.addActionListener(e -> {
+            actualizandoFiltros = true;
+
+            try {
+                if (cmbFiltroPedido.getItemCount() > 0) {
+                    cmbFiltroPedido.setSelectedIndex(0);
+                }
+
+                if (cmbFiltroRepartidor.getItemCount() > 0) {
+                    cmbFiltroRepartidor.setSelectedIndex(0);
+                }
+
+            } finally {
+                actualizandoFiltros = false;
+            }
+
+            aplicarFiltros();
+        });
+
+        cmbFiltroPedido.addActionListener(e -> aplicarFiltros());
+        cmbFiltroRepartidor.addActionListener(e -> aplicarFiltros());
+
+        JPanel campos = new JPanel(new GridLayout(1, 2, 15, 0));
+        campos.add(crearFila("Pedido:", cmbFiltroPedido));
+        campos.add(crearFila("Repartidor:", cmbFiltroRepartidor));
+
+        JPanel panel = new JPanel(new BorderLayout(10, 8));
+        panel.setBorder(
+                BorderFactory.createTitledBorder("Consultar entregas")
+        );
+        panel.add(campos, BorderLayout.CENTER);
+        panel.add(btnMostrarTodas, BorderLayout.EAST);
+        panel.add(lblResumen, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private Integer obtenerIdFiltroPedido() {
+        return cmbFiltroPedido.getSelectedItem() instanceof Pedido pedido
+                ? pedido.getIdPedido()
+                : null;
+    }
+
+    private Integer obtenerIdFiltroRepartidor() {
+        return cmbFiltroRepartidor.getSelectedItem()
+                instanceof Repartidor repartidor
+                ? repartidor.getIdRepartidor()
+                : null;
+    }
+
+    /**
+     * Actualiza los filtros conservando la selección por ID.
+     */
+    private void cargarFiltros(
+            List<Pedido> pedidos,
+            List<Repartidor> repartidores
+    ) {
+        Integer idPedido = obtenerIdFiltroPedido();
+        Integer idRepartidor = obtenerIdFiltroRepartidor();
+
+        actualizandoFiltros = true;
+
+        try {
+            cmbFiltroPedido.removeAllItems();
+            cmbFiltroRepartidor.removeAllItems();
+
+            cmbFiltroPedido.addItem("Todos los pedidos");
+            cmbFiltroRepartidor.addItem("Todos los repartidores");
+
+            for (Pedido pedido : pedidos) {
+                cmbFiltroPedido.addItem(pedido);
+
+                if (Integer.valueOf(pedido.getIdPedido()).equals(idPedido)) {
+                    cmbFiltroPedido.setSelectedItem(pedido);
+                }
+            }
+
+            for (Repartidor repartidor : repartidores) {
+                cmbFiltroRepartidor.addItem(repartidor);
+
+                if (Integer.valueOf(repartidor.getIdRepartidor())
+                        .equals(idRepartidor)) {
+
+                    cmbFiltroRepartidor.setSelectedItem(repartidor);
+                }
+            }
+
+        } finally {
+            actualizandoFiltros = false;
+        }
+
+        aplicarFiltros();
+    }
+
+    private void aplicarFiltros() {
+        if (actualizandoFiltros) {
+            return;
+        }
+
+        tablaEntregas.clearSelection();
+
+        ordenadorTabla.setRowFilter(
+                crearFiltro(
+                        obtenerIdFiltroPedido(),
+                        obtenerIdFiltroRepartidor()
+                )
+        );
+
+        actualizarResumen();
+    }
+
+    /**
+     * Compara IDs exactos y combina los filtros mediante AND.
+     */
+    private static RowFilter<DefaultTableModel, Integer> crearFiltro(
+            Integer idPedido,
+            Integer idRepartidor
+    ) {
+        if (idPedido == null && idRepartidor == null) {
+            return null;
+        }
+
+        return new RowFilter<>() {
+            @Override
+            public boolean include(
+                    Entry<? extends DefaultTableModel,
+                            ? extends Integer> fila
+            ) {
+                int pedido = ((Number) fila.getValue(1)).intValue();
+                int repartidor = ((Number) fila.getValue(3)).intValue();
+
+                return (idPedido == null
+                        || idPedido.intValue() == pedido)
+                        && (idRepartidor == null
+                        || idRepartidor.intValue() == repartidor);
+            }
+        };
+    }
+
+    private void actualizarResumen() {
+        lblResumen.setText(
+                "Entregas mostradas: " + tablaEntregas.getRowCount()
+                        + " de " + modeloTabla.getRowCount()
+        );
     }
 
     private JPanel crearFila(String texto, JComponent componente) {
@@ -260,6 +455,8 @@ public class VentanaEntrega extends JFrame {
                                 : pedido.getEstado().name()
                 });
             }
+
+            cargarFiltros(pedidos, repartidores);
 
         } catch (Exception e) {
             mostrarError("cargar los datos de entregas", e);
