@@ -10,241 +10,178 @@ import dao.PedidoDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.sql.SQLException;
 
+/**
+ * Registra pedidos pendientes y valida los datos antes de guardarlos.
+ */
 public class VentanaRegistroPedido extends JFrame {
 
     private final ControladorDeEnvios controlador;
-    private final PedidoDAO pedidoDAO;
+    private final PedidoDAO pedidoDAO = new PedidoDAO();
 
     private JTextField txtDireccion;
     private JTextField txtDistancia;
     private JComboBox<String> cmbTipo;
-    private JButton btnGuardar;
-    private JButton btnVolver;
 
     public VentanaRegistroPedido(ControladorDeEnvios controlador) {
-
         this.controlador = controlador;
-        this.pedidoDAO = new PedidoDAO();
-
         configurarVentana();
         crearComponentes();
     }
 
     private void configurarVentana() {
-
         setTitle("SpeedFast - Registrar Pedido");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(450, 320);
+        setSize(500, 320);
         setLocationRelativeTo(null);
         setResizable(false);
     }
 
     private void crearComponentes() {
+        JPanel principal = new JPanel(new BorderLayout(10, 20));
+        principal.setBorder(new EmptyBorder(20, 30, 20, 30));
 
-        JPanel panelPrincipal =
-                new JPanel(new BorderLayout(10, 20));
-
-        panelPrincipal.setBorder(
-                new EmptyBorder(20, 30, 20, 30)
+        JLabel titulo = new JLabel(
+                "REGISTRO DE PEDIDO", SwingConstants.CENTER
         );
-
-        JLabel lblTitulo =
-                new JLabel(
-                        "REGISTRO DE PEDIDO",
-                        SwingConstants.CENTER
-                );
-
-        lblTitulo.setFont(
-                new Font("Arial", Font.BOLD, 20)
-        );
-
-        JPanel panelFormulario =
-                new JPanel(new GridLayout(3, 2, 10, 15));
-
-        JLabel lblDireccion =
-                new JLabel("Dirección:");
-
-        JLabel lblTipo =
-                new JLabel("Tipo:");
-
-        JLabel lblDistancia =
-                new JLabel("Distancia (km):");
+        titulo.setFont(new Font("Arial", Font.BOLD, 20));
 
         txtDireccion = new JTextField();
         txtDistancia = new JTextField();
-
         cmbTipo = new JComboBox<>(
-                new String[]{
-                        "Comida",
-                        "Encomienda",
-                        "Express"
-                }
+                new String[]{"Comida", "Encomienda", "Express"}
         );
 
-        panelFormulario.add(lblDireccion);
-        panelFormulario.add(txtDireccion);
+        JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 15));
+        formulario.add(new JLabel("Dirección:"));
+        formulario.add(txtDireccion);
+        formulario.add(new JLabel("Tipo:"));
+        formulario.add(cmbTipo);
+        formulario.add(new JLabel("Distancia (km):"));
+        formulario.add(txtDistancia);
 
-        panelFormulario.add(lblTipo);
-        panelFormulario.add(cmbTipo);
+        JButton btnGuardar = new JButton("Guardar");
+        JButton btnVolver = new JButton("Volver");
 
-        panelFormulario.add(lblDistancia);
-        panelFormulario.add(txtDistancia);
+        JPanel botones = new JPanel(new GridLayout(1, 2, 10, 0));
+        botones.add(btnGuardar);
+        botones.add(btnVolver);
 
-        JPanel panelBotones =
-                new JPanel(new GridLayout(1, 2, 10, 0));
+        btnGuardar.addActionListener(e -> guardarPedido());
+        btnVolver.addActionListener(e -> dispose());
 
-        btnGuardar = new JButton("Guardar");
-        btnVolver = new JButton("Volver");
-
-        panelBotones.add(btnGuardar);
-        panelBotones.add(btnVolver);
-
-        btnGuardar.addActionListener(
-                e -> guardarPedido()
-        );
-
-        btnVolver.addActionListener(
-                e -> dispose()
-        );
-
-        panelPrincipal.add(
-                lblTitulo,
-                BorderLayout.NORTH
-        );
-
-        panelPrincipal.add(
-                panelFormulario,
-                BorderLayout.CENTER
-        );
-
-        panelPrincipal.add(
-                panelBotones,
-                BorderLayout.SOUTH
-        );
-
-        add(panelPrincipal);
+        principal.add(titulo, BorderLayout.NORTH);
+        principal.add(formulario, BorderLayout.CENTER);
+        principal.add(botones, BorderLayout.SOUTH);
+        add(principal);
     }
 
     private void guardarPedido() {
+        String direccion = txtDireccion.getText().trim();
+        String textoDistancia = txtDistancia.getText().trim();
+        String tipo = (String) cmbTipo.getSelectedItem();
 
-        String direccion =
-                txtDireccion.getText().trim();
+        if (direccion.isEmpty() || textoDistancia.isEmpty()) {
+            mostrarAdvertencia("Debe completar todos los campos.");
+            return;
+        }
 
-        String textoDistancia =
-                txtDistancia.getText().trim();
-
-        if (direccion.isEmpty()
-                || textoDistancia.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Debe completar todos los campos.",
-                    "Datos incompletos",
-                    JOptionPane.WARNING_MESSAGE
+        if (direccion.length() > 150) {
+            mostrarAdvertencia(
+                    "La dirección no puede superar los 150 caracteres."
             );
+            txtDireccion.requestFocusInWindow();
+            return;
+        }
 
+        if (tipo == null) {
+            mostrarAdvertencia("Debe seleccionar un tipo de pedido.");
+            return;
+        }
+
+        int distancia;
+
+        try {
+            distancia = Integer.parseInt(textoDistancia);
+
+        } catch (NumberFormatException e) {
+            mostrarAdvertencia(
+                    "La distancia debe ser un número entero válido."
+            );
+            txtDistancia.requestFocusInWindow();
+            return;
+        }
+
+        if (distancia <= 0) {
+            mostrarAdvertencia("La distancia debe ser mayor que cero.");
+            txtDistancia.requestFocusInWindow();
             return;
         }
 
         try {
+            Pedido pedido = switch (tipo) {
+                case "Comida" ->
+                        new PedidoComida(0, direccion, distancia);
 
-            int distancia =
-                    Integer.parseInt(textoDistancia);
+                case "Encomienda" ->
+                        new PedidoEncomienda(0, direccion, distancia);
 
-            if (distancia <= 0) {
+                case "Express" ->
+                        new PedidoExpress(0, direccion, distancia);
 
-                JOptionPane.showMessageDialog(
-                        this,
-                        "La distancia debe ser mayor que cero.",
-                        "Distancia inválida",
-                        JOptionPane.WARNING_MESSAGE
+                default -> throw new IllegalArgumentException(
+                        "El tipo de pedido no es válido."
                 );
+            };
 
+            if (!pedidoDAO.create(pedido)) {
+                mostrarAdvertencia("No se pudo registrar el pedido.");
                 return;
             }
 
-            String tipo =
-                    (String) cmbTipo.getSelectedItem();
-
-            Pedido pedido;
-
-            switch (tipo) {
-
-                case "Comida":
-                    pedido = new PedidoComida(
-                            0,
-                            direccion,
-                            distancia
-                    );
-                    break;
-
-                case "Encomienda":
-                    pedido = new PedidoEncomienda(
-                            0,
-                            direccion,
-                            distancia
-                    );
-                    break;
-
-                case "Express":
-                    pedido = new PedidoExpress(
-                            0,
-                            direccion,
-                            distancia
-                    );
-                    break;
-
-                default:
-                    throw new IllegalStateException(
-                            "Tipo de pedido no válido."
-                    );
-            }
-
-            if (pedidoDAO.guardar(pedido)) {
-
-                controlador.registrarPedido(pedido);
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Pedido registrado correctamente.\n"
-                                + "ID generado: "
-                                + pedido.getIdPedido(),
-                        "Registro exitoso",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-                limpiarCampos();
-
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "No se pudo guardar el pedido "
-                                + "en la base de datos.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
-
-        } catch (NumberFormatException e) {
+            controlador.registrarPedido(pedido);
 
             JOptionPane.showMessageDialog(
                     this,
-                    "La distancia debe contener "
-                            + "solo números enteros.",
-                    "Formato incorrecto",
+                    "Pedido registrado correctamente.\n"
+                            + "ID generado: " + pedido.getIdPedido()
+                            + "\nEstado inicial: " + pedido.getEstado(),
+                    "Registro exitoso",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            limpiarCampos();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No fue posible registrar el pedido.\n"
+                            + "Compruebe la conexión y disponibilidad de MySQL.",
+                    "Error de base de datos",
                     JOptionPane.ERROR_MESSAGE
             );
+
+        } catch (IllegalArgumentException e) {
+            mostrarAdvertencia(e.getMessage());
         }
     }
 
     private void limpiarCampos() {
-
         txtDireccion.setText("");
         txtDistancia.setText("");
         cmbTipo.setSelectedIndex(0);
+        txtDireccion.requestFocusInWindow();
+    }
 
-        txtDireccion.requestFocus();
+    private void mostrarAdvertencia(String mensaje) {
+        JOptionPane.showMessageDialog(
+                this,
+                mensaje,
+                "Datos inválidos",
+                JOptionPane.WARNING_MESSAGE
+        );
     }
 }

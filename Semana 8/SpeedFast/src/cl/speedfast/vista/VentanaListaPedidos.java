@@ -28,7 +28,6 @@ public class VentanaListaPedidos extends JFrame {
     private Timer timerActualizacion;
 
     public VentanaListaPedidos(ControladorDeEnvios controlador) {
-
         pedidoDAO = new PedidoDAO();
 
         configurarVentana();
@@ -45,7 +44,6 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void configurarVentana() {
-
         setTitle("SpeedFast - Gestión de Pedidos");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(850, 450);
@@ -54,28 +52,19 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void crearComponentes() {
+        JPanel principal = new JPanel(new BorderLayout(10, 15));
+        principal.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JPanel panelPrincipal =
-                new JPanel(new BorderLayout(10, 15));
-
-        panelPrincipal.setBorder(
-                new EmptyBorder(20, 20, 20, 20)
-        );
-
-        JLabel lblTitulo = new JLabel(
+        JLabel titulo = new JLabel(
                 "GESTIÓN DE PEDIDOS",
                 SwingConstants.CENTER
         );
-
-        lblTitulo.setFont(
-                new Font("Arial", Font.BOLD, 20)
-        );
+        titulo.setFont(new Font("Arial", Font.BOLD, 20));
 
         modeloTabla = new DefaultTableModel(
                 new Object[]{"ID", "Tipo", "Dirección", "Estado"},
                 0
         ) {
-
             @Override
             public boolean isCellEditable(int fila, int columna) {
                 return false;
@@ -93,34 +82,27 @@ public class VentanaListaPedidos extends JFrame {
         tablaPedidos.setSelectionMode(
                 ListSelectionModel.SINGLE_SELECTION
         );
-
-        tablaPedidos.getTableHeader()
-                .setReorderingAllowed(false);
-
-        tablaPedidos.getColumnModel()
-                .getColumn(0).setMaxWidth(80);
-
+        tablaPedidos.getTableHeader().setReorderingAllowed(false);
+        tablaPedidos.getColumnModel().getColumn(0).setMaxWidth(80);
         tablaPedidos.getColumnModel()
                 .getColumn(2).setPreferredWidth(350);
 
-        JPanel panelBotones =
-                new JPanel(new GridLayout(1, 4, 10, 0));
+        JPanel botones = new JPanel(new GridLayout(1, 4, 10, 0));
 
         JButton btnEditar = new JButton("Editar");
         JButton btnEliminar = new JButton("Eliminar");
         JButton btnRefrescar = new JButton("Refrescar");
         JButton btnVolver = new JButton("Volver");
 
-        panelBotones.add(btnEditar);
-        panelBotones.add(btnEliminar);
-        panelBotones.add(btnRefrescar);
-        panelBotones.add(btnVolver);
+        botones.add(btnEditar);
+        botones.add(btnEliminar);
+        botones.add(btnRefrescar);
+        botones.add(btnVolver);
 
         btnEditar.addActionListener(e -> editarPedido());
         btnEliminar.addActionListener(e -> eliminarPedido());
 
         btnRefrescar.addActionListener(e -> {
-
             if (cargarPedidos()) {
                 timerActualizacion.start();
             }
@@ -128,28 +110,21 @@ public class VentanaListaPedidos extends JFrame {
 
         btnVolver.addActionListener(e -> dispose());
 
-        panelPrincipal.add(lblTitulo, BorderLayout.NORTH);
+        principal.add(titulo, BorderLayout.NORTH);
+        principal.add(new JScrollPane(tablaPedidos), BorderLayout.CENTER);
+        principal.add(botones, BorderLayout.SOUTH);
 
-        panelPrincipal.add(
-                new JScrollPane(tablaPedidos),
-                BorderLayout.CENTER
-        );
-
-        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
-
-        add(panelPrincipal);
+        add(principal);
     }
 
     /**
      * Actualiza la tabla y conserva la selección por ID.
      */
     private boolean cargarPedidos() {
-
         Integer idSeleccionado = null;
         int filaSeleccionada = tablaPedidos.getSelectedRow();
 
         if (filaSeleccionada >= 0) {
-
             int filaModelo = tablaPedidos.convertRowIndexToModel(
                     filaSeleccionada
             );
@@ -159,25 +134,19 @@ public class VentanaListaPedidos extends JFrame {
         }
 
         try {
-
             List<Pedido> pedidos = pedidoDAO.readAll();
-
             modeloTabla.setRowCount(0);
 
             for (Pedido pedido : pedidos) {
-
-                modeloTabla.addRow(
-                        new Object[]{
-                                pedido.getIdPedido(),
-                                pedidoDAO.obtenerTipoPedido(pedido),
-                                pedido.getDireccionEntrega(),
-                                pedido.getEstado().name()
-                        }
-                );
+                modeloTabla.addRow(new Object[]{
+                        pedido.getIdPedido(),
+                        pedidoDAO.obtenerTipoPedido(pedido),
+                        pedido.getDireccionEntrega(),
+                        pedido.getEstado().name()
+                });
             }
 
             if (idSeleccionado != null) {
-
                 for (int fila = 0;
                      fila < modeloTabla.getRowCount();
                      fila++) {
@@ -185,7 +154,6 @@ public class VentanaListaPedidos extends JFrame {
                     if (idSeleccionado.equals(
                             modeloTabla.getValueAt(fila, 0)
                     )) {
-
                         int filaVista =
                                 tablaPedidos.convertRowIndexToView(fila);
 
@@ -204,12 +172,10 @@ public class VentanaListaPedidos extends JFrame {
             return true;
 
         } catch (SQLException e) {
-
             detenerActualizacion();
             mostrarErrorSQL("cargar los pedidos", e);
 
         } catch (IllegalArgumentException e) {
-
             detenerActualizacion();
             e.printStackTrace();
 
@@ -226,15 +192,12 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private int obtenerFilaSeleccionada() {
-
         int fila = tablaPedidos.getSelectedRow();
 
         if (fila < 0) {
-
             mostrarAdvertencia(
                     "Seleccione un pedido de la tabla."
             );
-
             return -1;
         }
 
@@ -242,7 +205,6 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void editarPedido() {
-
         int fila = obtenerFilaSeleccionada();
 
         if (fila < 0) {
@@ -259,7 +221,6 @@ public class VentanaListaPedidos extends JFrame {
         JComboBox<String> cmbTipo = new JComboBox<>(
                 new String[]{"COMIDA", "ENCOMIENDA", "EXPRESS"}
         );
-
         cmbTipo.setSelectedItem(
                 modeloTabla.getValueAt(fila, 1)
         );
@@ -278,10 +239,8 @@ public class VentanaListaPedidos extends JFrame {
 
         formulario.add(new JLabel("Dirección:"));
         formulario.add(txtDireccion);
-
         formulario.add(new JLabel("Tipo:"));
         formulario.add(cmbTipo);
-
         formulario.add(new JLabel("Estado:"));
         formulario.add(cmbEstado);
 
@@ -289,9 +248,7 @@ public class VentanaListaPedidos extends JFrame {
         detenerActualizacion();
 
         try {
-
             while (true) {
-
                 int respuesta = JOptionPane.showConfirmDialog(
                         this,
                         formulario,
@@ -307,21 +264,17 @@ public class VentanaListaPedidos extends JFrame {
                 String direccion = txtDireccion.getText().trim();
 
                 if (direccion.isEmpty()) {
-
                     mostrarAdvertencia(
                             "Debe ingresar la dirección de entrega."
                     );
-
                     continue;
                 }
 
                 if (direccion.length() > 150) {
-
                     mostrarAdvertencia(
                             "La dirección no puede superar "
                                     + "los 150 caracteres."
                     );
-
                     continue;
                 }
 
@@ -332,7 +285,6 @@ public class VentanaListaPedidos extends JFrame {
                         (EstadoPedido) cmbEstado.getSelectedItem();
 
                 Pedido pedido = switch (tipo) {
-
                     case "COMIDA" ->
                             new PedidoComida(idPedido, direccion, 0);
 
@@ -349,29 +301,30 @@ public class VentanaListaPedidos extends JFrame {
 
                 pedido.setEstado(estado);
 
-                if (pedidoDAO.update(pedido)) {
+                try {
+                    if (pedidoDAO.update(pedido)) {
+                        mostrarExito(
+                                "Pedido actualizado correctamente."
+                        );
 
-                    mostrarExito(
-                            "Pedido actualizado correctamente."
-                    );
+                    } else {
+                        mostrarAdvertencia(
+                                "El pedido ya no existe en la base de datos."
+                        );
+                    }
 
-                } else {
+                    estabaActivo = cargarPedidos() && estabaActivo;
+                    return;
 
-                    mostrarAdvertencia(
-                            "El pedido ya no existe en la base de datos."
-                    );
+                } catch (IllegalArgumentException e) {
+                    mostrarAdvertencia(e.getMessage());
                 }
-
-                estabaActivo = cargarPedidos() && estabaActivo;
-                return;
             }
 
         } catch (SQLException e) {
-
             mostrarErrorSQL("editar el pedido", e);
 
         } finally {
-
             if (estabaActivo && isDisplayable()) {
                 timerActualizacion.start();
             }
@@ -379,7 +332,6 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void eliminarPedido() {
-
         int fila = obtenerFilaSeleccionada();
 
         if (fila < 0) {
@@ -393,7 +345,6 @@ public class VentanaListaPedidos extends JFrame {
         detenerActualizacion();
 
         try {
-
             int respuesta = JOptionPane.showConfirmDialog(
                     this,
                     "¿Desea eliminar el pedido #" + idPedido + "?",
@@ -407,13 +358,11 @@ public class VentanaListaPedidos extends JFrame {
             }
 
             if (pedidoDAO.delete(idPedido)) {
-
                 mostrarExito(
                         "Pedido eliminado correctamente."
                 );
 
             } else {
-
                 mostrarAdvertencia(
                         "El pedido ya no existe en la base de datos."
                 );
@@ -422,18 +371,15 @@ public class VentanaListaPedidos extends JFrame {
             estabaActivo = cargarPedidos() && estabaActivo;
 
         } catch (SQLIntegrityConstraintViolationException e) {
-
             mostrarAdvertencia(
                     "No se puede eliminar este pedido "
                             + "porque tiene entregas asociadas."
             );
 
         } catch (SQLException e) {
-
             mostrarErrorSQL("eliminar el pedido", e);
 
         } finally {
-
             if (estabaActivo && isDisplayable()) {
                 timerActualizacion.start();
             }
@@ -441,7 +387,6 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void mostrarExito(String mensaje) {
-
         JOptionPane.showMessageDialog(
                 this,
                 mensaje,
@@ -451,7 +396,6 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void mostrarAdvertencia(String mensaje) {
-
         JOptionPane.showMessageDialog(
                 this,
                 mensaje,
@@ -464,7 +408,6 @@ public class VentanaListaPedidos extends JFrame {
             String operacion,
             SQLException error
     ) {
-
         System.err.println("Error al " + operacion + ".");
         error.printStackTrace();
 
@@ -478,7 +421,6 @@ public class VentanaListaPedidos extends JFrame {
     }
 
     private void detenerActualizacion() {
-
         if (timerActualizacion != null) {
             timerActualizacion.stop();
         }
@@ -486,7 +428,6 @@ public class VentanaListaPedidos extends JFrame {
 
     @Override
     public void dispose() {
-
         detenerActualizacion();
         super.dispose();
     }
