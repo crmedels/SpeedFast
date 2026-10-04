@@ -63,7 +63,7 @@ public class VentanaPrincipal extends JFrame {
                 new JButton("Gestionar pedidos");
 
         btnGestionarEntrega =
-                new JButton("Asignar repartidor / Iniciar entrega");
+                new JButton("Gestionar entregas");
 
         btnSalir =
                 new JButton("Salir");

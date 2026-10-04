@@ -63,7 +63,8 @@ public class PedidoDAO {
                 """;
 
         try (Connection conexion = ConexionBD.conectar();
-             PreparedStatement sentencia = conexion.prepareStatement(sql);
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql);
              ResultSet resultado = sentencia.executeQuery()) {
 
             while (resultado.next()) {
@@ -142,12 +143,20 @@ public class PedidoDAO {
             conexion.setAutoCommit(false);
 
             try {
-                if (!bloquearPedido(conexion, idPedido)) {
+                EstadoPedido estadoAnterior =
+                        bloquearPedido(conexion, idPedido);
+
+                if (estadoAnterior == null) {
                     conexion.rollback();
                     return false;
                 }
 
-                validarEstado(conexion, idPedido, estado);
+                validarEstado(
+                        conexion,
+                        idPedido,
+                        estado,
+                        estadoAnterior
+                );
 
                 try (PreparedStatement sentencia =
                              conexion.prepareStatement(sql)) {
@@ -158,7 +167,8 @@ public class PedidoDAO {
 
                     } else {
                         sentencia.setString(
-                                1, pedido.getDireccionEntrega().trim()
+                                1,
+                                pedido.getDireccionEntrega().trim()
                         );
                         sentencia.setString(2, obtenerTipoPedido(pedido));
                         sentencia.setString(3, estado.name());
@@ -178,13 +188,13 @@ public class PedidoDAO {
         }
     }
 
-    private boolean bloquearPedido(
+    private EstadoPedido bloquearPedido(
             Connection conexion,
             int idPedido
     ) throws SQLException {
 
         String sql = """
-                SELECT id
+                SELECT estado
                 FROM pedido
                 WHERE id = ?
                 FOR UPDATE
@@ -196,7 +206,12 @@ public class PedidoDAO {
             sentencia.setInt(1, idPedido);
 
             try (ResultSet resultado = sentencia.executeQuery()) {
-                return resultado.next();
+                return resultado.next()
+                        ? EstadoPedido.valueOf(
+                        resultado.getString("estado")
+                                .trim().toUpperCase(Locale.ROOT)
+                )
+                        : null;
             }
         }
     }
@@ -204,7 +219,8 @@ public class PedidoDAO {
     private void validarEstado(
             Connection conexion,
             int idPedido,
-            EstadoPedido estado
+            EstadoPedido estado,
+            EstadoPedido estadoAnterior
     ) throws SQLException {
 
         String sql = """
@@ -229,8 +245,8 @@ public class PedidoDAO {
         if (estado == EstadoPedido.PENDIENTE && tieneEntrega) {
             throw new IllegalArgumentException(
                     "El pedido tiene una entrega asociada.\n"
-                            + "Para dejarlo PENDIENTE, primero elimine "
-                            + "o cambie esa entrega desde Gestionar entregas."
+                            + "Primero elimine la entrega asociada o reasígnela "
+                            + "a otro pedido pendiente desde Gestionar entregas."
             );
         }
 
@@ -239,6 +255,17 @@ public class PedidoDAO {
                     "El pedido no tiene una entrega asociada.\n"
                             + "Asigne un repartidor e inicie la entrega "
                             + "desde Gestionar entregas."
+            );
+        }
+
+        if (estado == EstadoPedido.ENTREGADO
+                && !tieneEntrega
+                && estadoAnterior != EstadoPedido.ENTREGADO) {
+
+            throw new IllegalArgumentException(
+                    "No puede marcar como ENTREGADO un pedido "
+                            + "sin entrega asociada.\n"
+                            + "Primero registre la entrega desde Gestionar entregas."
             );
         }
     }
@@ -271,6 +298,33 @@ public class PedidoDAO {
                      conexion.prepareStatement(sql)) {
 
             sentencia.setInt(1, idPedido);
+            return sentencia.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Completa el pedido de la entrega seleccionada.
+     * La entrega debe existir y el pedido debe estar EN_REPARTO.
+     */
+    public boolean marcarEntregado(int idEntrega) throws SQLException {
+        if (idEntrega <= 0) {
+            throw new IllegalArgumentException(
+                    "Seleccione una entrega válida."
+            );
+        }
+
+        String sql = """
+                UPDATE pedido p
+                INNER JOIN entrega e ON e.id_pedido = p.id
+                SET p.estado = 'ENTREGADO'
+                WHERE e.id = ? AND p.estado = 'EN_REPARTO'
+                """;
+
+        try (Connection conexion = ConexionBD.conectar();
+             PreparedStatement sentencia =
+                     conexion.prepareStatement(sql)) {
+
+            sentencia.setInt(1, idEntrega);
             return sentencia.executeUpdate() > 0;
         }
     }

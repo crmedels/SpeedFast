@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Gestiona entregas persistidas y sus relaciones con pedidos
- * y repartidores.
+ * Gestiona entregas, su finalización y las correcciones de historial.
  */
 public class VentanaEntrega extends JFrame {
 
@@ -50,19 +49,15 @@ public class VentanaEntrega extends JFrame {
     private boolean operacionEnCurso;
 
     public VentanaEntrega(ControladorDeEnvios controlador) {
-
         this.controlador = controlador;
 
         configurarVentana();
         crearComponentes();
         refrescarDatos();
 
-        // Actualiza los combos al volver de otra ventana del sistema.
         addWindowListener(new WindowAdapter() {
-
             @Override
             public void windowActivated(WindowEvent e) {
-
                 Window anterior = e.getOppositeWindow();
 
                 if (anterior instanceof Dialog
@@ -78,7 +73,6 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void configurarVentana() {
-
         setTitle("SpeedFast - Gestión de Entregas");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1050, 550);
@@ -87,7 +81,6 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void crearComponentes() {
-
         JPanel principal = new JPanel(new BorderLayout(10, 15));
         principal.setBorder(new EmptyBorder(20, 20, 20, 20));
 
@@ -95,13 +88,14 @@ public class VentanaEntrega extends JFrame {
                 "GESTIÓN DE ENTREGAS",
                 SwingConstants.CENTER
         );
-
         titulo.setFont(new Font("Arial", Font.BOLD, 20));
 
         cmbPedidos = new JComboBox<>();
         cmbRepartidores = new JComboBox<>();
 
-        JPanel formulario = new JPanel(new GridLayout(2, 1, 10, 10));
+        JPanel formulario =
+                new JPanel(new GridLayout(2, 1, 10, 10));
+
         formulario.add(crearFila("Pedido:", cmbPedidos));
         formulario.add(crearFila("Repartidor:", cmbRepartidores));
 
@@ -136,15 +130,16 @@ public class VentanaEntrega extends JFrame {
         tablaEntregas.setSelectionMode(
                 ListSelectionModel.SINGLE_SELECTION
         );
-
         tablaEntregas.getTableHeader().setReorderingAllowed(false);
         tablaEntregas.getColumnModel().getColumn(0).setMaxWidth(60);
-        tablaEntregas.getColumnModel().getColumn(2).setPreferredWidth(220);
+        tablaEntregas.getColumnModel()
+                .getColumn(2).setPreferredWidth(220);
 
-        JPanel botones = new JPanel(new GridLayout(1, 6, 8, 0));
+        JPanel botones = new JPanel(new GridLayout(2, 4, 8, 8));
 
         JButton btnAsignar = new JButton("Asignar repartidor");
         JButton btnIniciar = new JButton("Iniciar entrega");
+        JButton btnCompletar = new JButton("Marcar entregado");
         JButton btnEditar = new JButton("Editar");
         JButton btnEliminar = new JButton("Eliminar");
         JButton btnRefrescar = new JButton("Refrescar");
@@ -152,6 +147,7 @@ public class VentanaEntrega extends JFrame {
 
         botones.add(btnAsignar);
         botones.add(btnIniciar);
+        botones.add(btnCompletar);
         botones.add(btnEditar);
         botones.add(btnEliminar);
         botones.add(btnRefrescar);
@@ -160,37 +156,37 @@ public class VentanaEntrega extends JFrame {
         btnAsignar.addActionListener(
                 e -> ejecutarOperacion(this::asignarRepartidor)
         );
-
         btnIniciar.addActionListener(
                 e -> ejecutarOperacion(this::iniciarEntrega)
         );
-
+        btnCompletar.addActionListener(
+                e -> ejecutarOperacion(this::marcarEntregado)
+        );
         btnEditar.addActionListener(
                 e -> ejecutarOperacion(this::editarEntrega)
         );
-
         btnEliminar.addActionListener(
                 e -> ejecutarOperacion(this::eliminarEntrega)
         );
-
         btnRefrescar.addActionListener(
                 e -> ejecutarOperacion(this::refrescarDatos)
         );
-
         btnVolver.addActionListener(e -> dispose());
 
         cmbPedidos.addActionListener(e -> limpiarAsignacion());
         cmbRepartidores.addActionListener(e -> limpiarAsignacion());
 
         principal.add(superior, BorderLayout.NORTH);
-        principal.add(new JScrollPane(tablaEntregas), BorderLayout.CENTER);
+        principal.add(
+                new JScrollPane(tablaEntregas),
+                BorderLayout.CENTER
+        );
         principal.add(botones, BorderLayout.SOUTH);
 
         add(principal);
     }
 
     private JPanel crearFila(String texto, JComponent componente) {
-
         JPanel fila = new JPanel(new BorderLayout(10, 0));
         JLabel etiqueta = new JLabel(texto);
         etiqueta.setPreferredSize(new Dimension(100, 25));
@@ -202,7 +198,6 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void ejecutarOperacion(Runnable operacion) {
-
         operacionEnCurso = true;
 
         try {
@@ -213,13 +208,8 @@ public class VentanaEntrega extends JFrame {
         }
     }
 
-    /**
-     * Recupera los datos antes de reemplazar el contenido visual.
-     */
     private void refrescarDatos() {
-
         try {
-
             List<Pedido> pedidos = pedidoDAO.readAll();
             List<Repartidor> repartidores = repartidorDAO.readAll();
             List<Entrega> entregas = entregaDAO.readAll();
@@ -247,29 +237,28 @@ public class VentanaEntrega extends JFrame {
             modeloTabla.setRowCount(0);
 
             for (Entrega entrega : entregas) {
+                Pedido pedido =
+                        mapaPedidos.get(entrega.getIdPedido());
 
-                Pedido pedido = mapaPedidos.get(entrega.getIdPedido());
                 Repartidor repartidor =
                         mapaRepartidores.get(entrega.getIdRepartidor());
 
-                modeloTabla.addRow(
-                        new Object[]{
-                                entrega.getIdEntrega(),
-                                entrega.getIdPedido(),
-                                pedido == null
-                                        ? "No disponible"
-                                        : pedido.getDireccionEntrega(),
-                                entrega.getIdRepartidor(),
-                                repartidor == null
-                                        ? "No disponible"
-                                        : repartidor.getNombre(),
-                                entrega.getFecha().toString(),
-                                entrega.getHora().format(formatoHora),
-                                pedido == null
-                                        ? "No disponible"
-                                        : pedido.getEstado().name()
-                        }
-                );
+                modeloTabla.addRow(new Object[]{
+                        entrega.getIdEntrega(),
+                        entrega.getIdPedido(),
+                        pedido == null
+                                ? "No disponible"
+                                : pedido.getDireccionEntrega(),
+                        entrega.getIdRepartidor(),
+                        repartidor == null
+                                ? "No disponible"
+                                : repartidor.getNombre(),
+                        entrega.getFecha().toString(),
+                        entrega.getHora().format(formatoHora),
+                        pedido == null
+                                ? "No disponible"
+                                : pedido.getEstado().name()
+                });
             }
 
         } catch (Exception e) {
@@ -283,13 +272,13 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void asignarRepartidor() {
+        Pedido pedido =
+                (Pedido) cmbPedidos.getSelectedItem();
 
-        Pedido pedido = (Pedido) cmbPedidos.getSelectedItem();
         Repartidor repartidor =
                 (Repartidor) cmbRepartidores.getSelectedItem();
 
         if (pedido == null || repartidor == null) {
-
             mostrarAdvertencia(
                     "Debe seleccionar un pedido y un repartidor."
             );
@@ -297,7 +286,6 @@ public class VentanaEntrega extends JFrame {
         }
 
         if (pedido.getEstado() != EstadoPedido.PENDIENTE) {
-
             mostrarAdvertencia(
                     "Solo puede iniciar entregas de pedidos PENDIENTES."
             );
@@ -316,8 +304,8 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void iniciarEntrega() {
-
-        Pedido pedido = (Pedido) cmbPedidos.getSelectedItem();
+        Pedido pedido =
+                (Pedido) cmbPedidos.getSelectedItem();
 
         if (pedido == null
                 || pedidoAsignado != pedido
@@ -339,9 +327,7 @@ public class VentanaEntrega extends JFrame {
         );
 
         try {
-
             if (entregaDAO.create(entrega)) {
-
                 controlador.reservarPedido(pedido);
                 controlador.despacharPedido(pedido);
                 pedido.setEstado(EstadoPedido.EN_REPARTO);
@@ -362,12 +348,68 @@ public class VentanaEntrega extends JFrame {
         }
     }
 
-    private int obtenerFilaSeleccionada() {
+    private void marcarEntregado() {
+        int fila = obtenerFilaSeleccionada();
 
+        if (fila < 0) {
+            return;
+        }
+
+        int idEntrega =
+                (Integer) modeloTabla.getValueAt(fila, 0);
+
+        int idPedido =
+                (Integer) modeloTabla.getValueAt(fila, 1);
+
+        String estado =
+                (String) modeloTabla.getValueAt(fila, 7);
+
+        if (!EstadoPedido.EN_REPARTO.name().equals(estado)) {
+            mostrarAdvertencia(
+                    "Solo puede completar pedidos que estén EN_REPARTO."
+            );
+            return;
+        }
+
+        int respuesta = JOptionPane.showConfirmDialog(
+                this,
+                "¿Marcar el pedido #" + idPedido + " como ENTREGADO?",
+                "Confirmar entrega",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (respuesta != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            if (pedidoDAO.marcarEntregado(idEntrega)) {
+                mostrarExito(
+                        "Pedido marcado como ENTREGADO correctamente."
+                );
+
+            } else {
+                mostrarAdvertencia(
+                        "La entrega ya no existe o el pedido "
+                                + "ya no está EN_REPARTO."
+                );
+            }
+
+            refrescarDatos();
+
+        } catch (Exception e) {
+            mostrarError("completar la entrega", e);
+        }
+    }
+
+    private int obtenerFilaSeleccionada() {
         int fila = tablaEntregas.getSelectedRow();
 
         if (fila < 0) {
-            mostrarAdvertencia("Seleccione una entrega de la tabla.");
+            mostrarAdvertencia(
+                    "Seleccione una entrega de la tabla."
+            );
             return -1;
         }
 
@@ -375,40 +417,49 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void editarEntrega() {
-
         int fila = obtenerFilaSeleccionada();
 
         if (fila < 0) {
             return;
         }
 
-        int idEntrega = (Integer) modeloTabla.getValueAt(fila, 0);
-        int idPedido = (Integer) modeloTabla.getValueAt(fila, 1);
-        int idRepartidor = (Integer) modeloTabla.getValueAt(fila, 3);
+        int idEntrega =
+                (Integer) modeloTabla.getValueAt(fila, 0);
+
+        int idPedido =
+                (Integer) modeloTabla.getValueAt(fila, 1);
+
+        int idRepartidor =
+                (Integer) modeloTabla.getValueAt(fila, 3);
 
         try {
+            List<Pedido> pedidosActuales = pedidoDAO.readAll();
 
             JComboBox<Pedido> comboPedido = new JComboBox<>(
-                    pedidoDAO.readAll().toArray(new Pedido[0])
+                    pedidosActuales.toArray(new Pedido[0])
             );
 
             JComboBox<Repartidor> comboRepartidor = new JComboBox<>(
                     repartidorDAO.readAll().toArray(new Repartidor[0])
             );
 
+            boolean entregaCompletada = false;
+
             comboPedido.setSelectedIndex(-1);
             comboRepartidor.setSelectedIndex(-1);
 
             for (int i = 0; i < comboPedido.getItemCount(); i++) {
-
                 if (comboPedido.getItemAt(i).getIdPedido() == idPedido) {
                     comboPedido.setSelectedIndex(i);
+
+                    entregaCompletada =
+                            comboPedido.getItemAt(i).getEstado()
+                                    == EstadoPedido.ENTREGADO;
                     break;
                 }
             }
 
             for (int i = 0; i < comboRepartidor.getItemCount(); i++) {
-
                 if (comboRepartidor.getItemAt(i).getIdRepartidor()
                         == idRepartidor) {
 
@@ -439,7 +490,6 @@ public class VentanaEntrega extends JFrame {
             txtHora.setToolTipText("Formato: HH:mm:ss");
 
             while (true) {
-
                 int respuesta = JOptionPane.showConfirmDialog(
                         this,
                         formulario,
@@ -460,7 +510,6 @@ public class VentanaEntrega extends JFrame {
                         (Repartidor) comboRepartidor.getSelectedItem();
 
                 if (pedido == null || repartidor == null) {
-
                     mostrarAdvertencia(
                             "Debe seleccionar un pedido y un repartidor."
                     );
@@ -475,7 +524,7 @@ public class VentanaEntrega extends JFrame {
 
                     mostrarAdvertencia(
                             "Use fecha AAAA-MM-DD y hora HH:mm:ss.\n"
-                                    + "Ejemplo: 2026-10-03 y 15:30:00."
+                                    + "Ejemplo: 2026-10-04 y 15:30:00."
                     );
                     continue;
                 }
@@ -484,12 +533,10 @@ public class VentanaEntrega extends JFrame {
                 LocalTime hora;
 
                 try {
-
                     fecha = LocalDate.parse(fechaTexto);
                     hora = LocalTime.parse(horaTexto);
 
                 } catch (DateTimeParseException e) {
-
                     mostrarAdvertencia(
                             "La fecha o la hora no son válidas."
                     );
@@ -505,10 +552,15 @@ public class VentanaEntrega extends JFrame {
 
                 entrega.setIdEntrega(idEntrega);
 
-                try {
+                if (entregaCompletada && !confirmarCorreccion()) {
+                    continue;
+                }
 
+                try {
                     if (entregaDAO.update(entrega)) {
-                        mostrarExito("Entrega actualizada correctamente.");
+                        mostrarExito(
+                                "Entrega actualizada correctamente."
+                        );
 
                     } else {
                         mostrarAdvertencia(
@@ -530,20 +582,32 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void eliminarEntrega() {
-
         int fila = obtenerFilaSeleccionada();
 
         if (fila < 0) {
             return;
         }
 
-        int idEntrega = (Integer) modeloTabla.getValueAt(fila, 0);
+        int idEntrega =
+                (Integer) modeloTabla.getValueAt(fila, 0);
+
+        boolean completada = EstadoPedido.ENTREGADO.name().equals(
+                modeloTabla.getValueAt(fila, 7)
+        );
+
+        String mensaje =
+                "¿Desea eliminar la entrega #" + idEntrega + "?\n";
+
+        mensaje += completada
+                ? "Está corrigiendo el historial de una entrega completada.\n"
+                  + "Se eliminará su registro de entrega; "
+                  + "el pedido conservará el estado ENTREGADO."
+                : "Si el pedido estaba en reparto y queda "
+                  + "sin entregas, volverá a PENDIENTE.";
 
         int respuesta = JOptionPane.showConfirmDialog(
                 this,
-                "¿Desea eliminar la entrega #" + idEntrega + "?\n"
-                        + "Si el pedido estaba en reparto y queda "
-                        + "sin entregas, volverá a PENDIENTE.",
+                mensaje,
                 "Confirmar eliminación",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
@@ -554,9 +618,10 @@ public class VentanaEntrega extends JFrame {
         }
 
         try {
-
             if (entregaDAO.delete(idEntrega)) {
-                mostrarExito("Entrega eliminada correctamente.");
+                mostrarExito(
+                        "Entrega eliminada correctamente."
+                );
 
             } else {
                 mostrarAdvertencia(
@@ -571,8 +636,21 @@ public class VentanaEntrega extends JFrame {
         }
     }
 
-    private void mostrarExito(String mensaje) {
+    private boolean confirmarCorreccion() {
+        return JOptionPane.showConfirmDialog(
+                this,
+                "Esta entrega ya fue completada.\n"
+                        + "Modificarla corregirá su historial.\n"
+                        + "Si cambia de pedido, el original "
+                        + "conservará su estado ENTREGADO.\n"
+                        + "¿Desea guardar la corrección?",
+                "Corregir entrega completada",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        ) == JOptionPane.YES_OPTION;
+    }
 
+    private void mostrarExito(String mensaje) {
         JOptionPane.showMessageDialog(
                 this,
                 mensaje,
@@ -582,7 +660,6 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void mostrarAdvertencia(String mensaje) {
-
         JOptionPane.showMessageDialog(
                 this,
                 mensaje,
@@ -592,7 +669,6 @@ public class VentanaEntrega extends JFrame {
     }
 
     private void mostrarError(String operacion, Exception error) {
-
         if (error instanceof IllegalArgumentException) {
             mostrarAdvertencia(error.getMessage());
             return;
