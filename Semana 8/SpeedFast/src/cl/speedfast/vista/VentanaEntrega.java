@@ -740,6 +740,14 @@ public class VentanaEntrega extends JFrame {
                     continue;
                 }
 
+                // MySQL DATE admite años entre 1000 y 9999.
+                if (fecha.getYear() < 1000 || fecha.getYear() > 9999) {
+                    mostrarAdvertencia(
+                            "El año de la fecha debe estar entre 1000 y 9999."
+                    );
+                    continue;
+                }
+
                 Entrega entrega = new Entrega(
                         pedido.getIdPedido(),
                         repartidor.getIdRepartidor(),
