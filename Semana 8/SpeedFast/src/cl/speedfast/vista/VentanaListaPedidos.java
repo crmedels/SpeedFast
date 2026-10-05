@@ -11,6 +11,7 @@ import dao.PedidoDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
@@ -62,7 +63,7 @@ public class VentanaListaPedidos extends JFrame {
         titulo.setFont(new Font("Arial", Font.BOLD, 20));
 
         modeloTabla = new DefaultTableModel(
-                new Object[]{"ID", "Tipo", "Dirección", "Estado"},
+                new Object[]{"ID", "Tipo", "Dirección", "Distancia (km)", "Estado"},
                 0
         ) {
             @Override
@@ -72,7 +73,8 @@ public class VentanaListaPedidos extends JFrame {
 
             @Override
             public Class<?> getColumnClass(int columna) {
-                return columna == 0 ? Integer.class : String.class;
+                return columna == 0 || columna == 3
+                        ? Integer.class : String.class;
             }
         };
 
@@ -86,6 +88,16 @@ public class VentanaListaPedidos extends JFrame {
         tablaPedidos.getColumnModel().getColumn(0).setMaxWidth(80);
         tablaPedidos.getColumnModel()
                 .getColumn(2).setPreferredWidth(350);
+
+        tablaPedidos.getColumnModel().getColumn(3).setCellRenderer(
+                new DefaultTableCellRenderer() {
+                    @Override
+                    protected void setValue(Object valor) {
+                        setHorizontalAlignment(SwingConstants.RIGHT);
+                        setText(valor == null ? "Sin registrar" : valor.toString());
+                    }
+                }
+        );
 
         JPanel botones = new JPanel(new GridLayout(1, 4, 10, 0));
 
@@ -142,6 +154,8 @@ public class VentanaListaPedidos extends JFrame {
                         pedido.getIdPedido(),
                         pedidoDAO.obtenerTipoPedido(pedido),
                         pedido.getDireccionEntrega(),
+                        pedido.tieneDistanciaRegistrada()
+                                ? pedido.getDistanciaKm() : null,
                         pedido.getEstado().name()
                 });
             }
@@ -181,7 +195,7 @@ public class VentanaListaPedidos extends JFrame {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Hay un pedido con tipo o estado inválido "
+                    "Hay un pedido con tipo, estado o distancia inválidos "
                             + "en la base de datos.",
                     "Datos inválidos",
                     JOptionPane.ERROR_MESSAGE
@@ -218,6 +232,11 @@ public class VentanaListaPedidos extends JFrame {
                 (String) modeloTabla.getValueAt(fila, 2)
         );
 
+        Object distanciaActual = modeloTabla.getValueAt(fila, 3);
+        JTextField txtDistancia = new JTextField(
+                distanciaActual == null ? "" : distanciaActual.toString()
+        );
+
         JComboBox<String> cmbTipo = new JComboBox<>(
                 new String[]{"COMIDA", "ENCOMIENDA", "EXPRESS"}
         );
@@ -230,17 +249,19 @@ public class VentanaListaPedidos extends JFrame {
 
         cmbEstado.setSelectedItem(
                 EstadoPedido.valueOf(
-                        (String) modeloTabla.getValueAt(fila, 3)
+                        (String) modeloTabla.getValueAt(fila, 4)
                 )
         );
 
         JPanel formulario =
-                new JPanel(new GridLayout(3, 2, 10, 10));
+                new JPanel(new GridLayout(4, 2, 10, 10));
 
         formulario.add(new JLabel("Dirección:"));
         formulario.add(txtDireccion);
         formulario.add(new JLabel("Tipo:"));
         formulario.add(cmbTipo);
+        formulario.add(new JLabel("Distancia (km):"));
+        formulario.add(txtDistancia);
         formulario.add(new JLabel("Estado:"));
         formulario.add(cmbEstado);
 
@@ -281,18 +302,33 @@ public class VentanaListaPedidos extends JFrame {
                 String tipo =
                         (String) cmbTipo.getSelectedItem();
 
+                int distancia;
+                try {
+                    distancia = Integer.parseInt(txtDistancia.getText().trim());
+                } catch (NumberFormatException e) {
+                    mostrarAdvertencia(
+                            "La distancia debe ser un número entero válido."
+                    );
+                    continue;
+                }
+
+                if (distancia <= 0) {
+                    mostrarAdvertencia("La distancia debe ser mayor que cero.");
+                    continue;
+                }
+
                 EstadoPedido estado =
                         (EstadoPedido) cmbEstado.getSelectedItem();
 
                 Pedido pedido = switch (tipo) {
                     case "COMIDA" ->
-                            new PedidoComida(idPedido, direccion, 0);
+                            new PedidoComida(idPedido, direccion, distancia);
 
                     case "ENCOMIENDA" ->
-                            new PedidoEncomienda(idPedido, direccion, 0);
+                            new PedidoEncomienda(idPedido, direccion, distancia);
 
                     case "EXPRESS" ->
-                            new PedidoExpress(idPedido, direccion, 0);
+                            new PedidoExpress(idPedido, direccion, distancia);
 
                     default -> throw new IllegalArgumentException(
                             "Tipo de pedido no válido."

@@ -10,7 +10,8 @@ CREATE TABLE pedido (
     id INT AUTO_INCREMENT PRIMARY KEY,
     direccion VARCHAR(150) NOT NULL,
     tipo VARCHAR(30) NOT NULL,
-    estado VARCHAR(20) NOT NULL
+    estado VARCHAR(20) NOT NULL,
+    distancia_km INT NULL COMMENT 'Kilómetros; NULL si aún no se registró'
 );
 
 CREATE TABLE entrega (

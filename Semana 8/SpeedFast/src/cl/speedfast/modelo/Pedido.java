@@ -10,7 +10,8 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
 
     private int idPedido;
     private String direccionEntrega;
-    private int distanciaKm;
+    // NULL distingue un dato antiguo ausente de una distancia real.
+    private Integer distanciaKm;
     private String nombreRepartidor;
     private EstadoPedido estado;
 
@@ -23,7 +24,7 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
     public Pedido(int idPedido, String direccionEntrega, int distanciaKm) {
         this.idPedido = idPedido;
         this.direccionEntrega = direccionEntrega;
-        this.distanciaKm = distanciaKm;
+        setDistanciaKm(distanciaKm);
         this.nombreRepartidor = null;
         this.estado = EstadoPedido.PENDIENTE;
 
@@ -54,11 +55,29 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
     }
 
     public int getDistanciaKm() {
+        if (!tieneDistanciaRegistrada()) {
+            throw new IllegalStateException(
+                    "El pedido #" + idPedido + " no tiene distancia registrada."
+            );
+        }
         return distanciaKm;
     }
 
+    public boolean tieneDistanciaRegistrada() {
+        return distanciaKm != null;
+    }
+
+    /**
+     * Conserva los constructores anteriores: 0 indica distancia sin registrar.
+     * El DAO exige una distancia positiva para crear o editar un pedido.
+     */
     public void setDistanciaKm(int distanciaKm) {
-        this.distanciaKm = distanciaKm;
+        if (distanciaKm < 0) {
+            throw new IllegalArgumentException(
+                    "La distancia no puede ser negativa."
+            );
+        }
+        this.distanciaKm = distanciaKm == 0 ? null : distanciaKm;
     }
 
     public String getNombreRepartidor() {
@@ -122,8 +141,9 @@ public abstract class Pedido implements Despachable, Cancelable, Rastreable {
 
         System.out.println(
                 "Distancia: "
-                        + distanciaKm
-                        + " km"
+                        + (tieneDistanciaRegistrada()
+                        ? distanciaKm + " km"
+                        : "Sin registrar")
         );
 
         System.out.println(

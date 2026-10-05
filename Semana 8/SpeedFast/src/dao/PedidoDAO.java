@@ -26,8 +26,8 @@ public class PedidoDAO {
         }
 
         String sql = """
-                INSERT INTO pedido (direccion, tipo, estado)
-                VALUES (?, ?, ?)
+                INSERT INTO pedido (direccion, tipo, estado, distancia_km)
+                VALUES (?, ?, ?, ?)
                 """;
 
         try (Connection conexion = ConexionBD.conectar();
@@ -38,6 +38,7 @@ public class PedidoDAO {
             sentencia.setString(1, pedido.getDireccionEntrega().trim());
             sentencia.setString(2, obtenerTipoPedido(pedido));
             sentencia.setString(3, pedido.getEstado().name());
+            sentencia.setInt(4, pedido.getDistanciaKm());
 
             if (sentencia.executeUpdate() == 0) {
                 return false;
@@ -57,7 +58,7 @@ public class PedidoDAO {
         List<Pedido> pedidos = new ArrayList<>();
 
         String sql = """
-                SELECT id, direccion, tipo, estado
+                SELECT id, direccion, tipo, estado, distancia_km
                 FROM pedido
                 ORDER BY id
                 """;
@@ -78,16 +79,26 @@ public class PedidoDAO {
                                 .trim().toUpperCase(Locale.ROOT)
                 );
 
-                // El esquema actual no almacena la distancia.
+                int distancia = resultado.getInt("distancia_km");
+                boolean sinDistancia = resultado.wasNull();
+
+                if (!sinDistancia && distancia <= 0) {
+                    throw new IllegalArgumentException(
+                            "El pedido #" + id + " tiene una distancia inválida."
+                    );
+                }
+
+                // NULL corresponde a pedidos anteriores a esta migración.
+                // El modelo usa 0 solo al construir para indicar dato ausente.
                 Pedido pedido = switch (tipo) {
                     case "COMIDA" ->
-                            new PedidoComida(id, direccion, 0);
+                            new PedidoComida(id, direccion, distancia);
 
                     case "ENCOMIENDA" ->
-                            new PedidoEncomienda(id, direccion, 0);
+                            new PedidoEncomienda(id, direccion, distancia);
 
                     case "EXPRESS" ->
-                            new PedidoExpress(id, direccion, 0);
+                            new PedidoExpress(id, direccion, distancia);
 
                     default -> throw new IllegalArgumentException(
                             "Tipo de pedido no reconocido: " + tipo
@@ -135,7 +146,7 @@ public class PedidoDAO {
                 ? "UPDATE pedido SET estado = ? WHERE id = ?"
                 : """
                   UPDATE pedido
-                  SET direccion = ?, tipo = ?, estado = ?
+                  SET direccion = ?, tipo = ?, estado = ?, distancia_km = ?
                   WHERE id = ?
                   """;
 
@@ -172,7 +183,8 @@ public class PedidoDAO {
                         );
                         sentencia.setString(2, obtenerTipoPedido(pedido));
                         sentencia.setString(3, estado.name());
-                        sentencia.setInt(4, idPedido);
+                        sentencia.setInt(4, pedido.getDistanciaKm());
+                        sentencia.setInt(5, idPedido);
                     }
 
                     sentencia.executeUpdate();
@@ -288,6 +300,12 @@ public class PedidoDAO {
         }
 
         obtenerTipoPedido(pedido);
+
+        if (!pedido.tieneDistanciaRegistrada() || pedido.getDistanciaKm() <= 0) {
+            throw new IllegalArgumentException(
+                    "La distancia debe ser un número entero mayor que cero."
+            );
+        }
     }
 
     public boolean delete(int idPedido) throws SQLException {
